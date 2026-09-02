@@ -138,6 +138,63 @@
   </div>
 </section>
 
+<section id="plan" class="todo-widget">
+  <h2 class="utility-section__heading">Plan your day.</h2>
+
+  <div class="todo-tabs" role="tablist">
+    <button class="todo-tab is-active" data-tab="today" role="tab" aria-selected="true">Today</button>
+    <button class="todo-tab" data-tab="goals" role="tab" aria-selected="false">Big Goals</button>
+    <button class="todo-tab" data-tab="workouts" role="tab" aria-selected="false">Weekly Workouts</button>
+  </div>
+
+  <div class="todo-panel" data-panel="today">
+    <p class="todo-date" id="todo-date"></p>
+
+    <div class="todo-block">
+      <h3 class="todo-block__title">Workout</h3>
+      <ul class="todo-list">
+        <li class="todo-list__item" id="today-workout-item">
+          <button class="todo-check" id="today-workout-check" aria-label="Mark today's workout done" type="button"></button>
+          <span class="todo-item__text" id="today-workout-text">Rest day</span>
+        </li>
+      </ul>
+    </div>
+
+    <div class="todo-block">
+      <div class="todo-block__header">
+        <h3 class="todo-block__title">From your goals</h3>
+        <button class="text-link todo-shuffle" id="shuffle-goals" type="button">Shuffle</button>
+      </div>
+      <ul class="todo-list" id="today-goals-list"></ul>
+      <p class="todo-empty" id="today-goals-empty" hidden>Add a few Big Goals and they'll show up here.</p>
+    </div>
+
+    <div class="todo-block">
+      <h3 class="todo-block__title">Today's tasks</h3>
+      <form class="todo-add" id="today-add-form">
+        <input class="todo-input" id="today-add-input" type="text" placeholder="Add a task for today" autocomplete="off">
+        <button class="btn btn--primary" type="submit">Add</button>
+      </form>
+      <ul class="todo-list" id="today-extras-list"></ul>
+    </div>
+  </div>
+
+  <div class="todo-panel" data-panel="goals" hidden>
+    <p class="todo-hint">Big, broad things you want to do. A few get pulled into "Today" automatically each day.</p>
+    <form class="todo-add" id="goals-add-form">
+      <input class="todo-input" id="goals-add-input" type="text" placeholder="Add a big goal, e.g. Learn Spanish" autocomplete="off">
+      <button class="btn btn--primary" type="submit">Add</button>
+    </form>
+    <ul class="todo-list" id="goals-list"></ul>
+    <p class="todo-empty" id="goals-empty" hidden>No goals yet — add your first one above.</p>
+  </div>
+
+  <div class="todo-panel" data-panel="workouts" hidden>
+    <p class="todo-hint">Set a workout — or "Rest" — for each day. Today's plan reads this automatically.</p>
+    <div class="workout-grid" id="workout-grid"></div>
+  </div>
+</section>
+
 <footer id="buy" class="footer">
   <div class="footer__columns">
     <div class="footer__column">
@@ -160,5 +217,6 @@
   <p class="footer__legal">Copyright © 2026 Aperture Inc. All rights reserved.</p>
 </footer>
 
+<script src="app.js" defer></script>
 </body>
 </html>
