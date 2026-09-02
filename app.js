@@ -1,10 +1,10 @@
 (function () {
   "use strict";
 
-  var LS_GOALS = "aperture-todo-goals";
-  var LS_WORKOUTS = "aperture-todo-workouts";
-  var LS_TODAY = "aperture-todo-today";
-  var LS_ROTATION = "aperture-todo-rotation";
+  var LS_GOALS = "plan-goals";
+  var LS_WORKOUTS = "plan-workouts";
+  var LS_TODAY = "plan-today";
+  var LS_ROTATION = "plan-goal-rotation";
   var GOALS_PER_DAY = 3;
   var DAY_KEYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
   var DAY_LABELS = {
