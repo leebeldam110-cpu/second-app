@@ -1,0 +1,323 @@
+/* Aperture — built from design-md/apple/DESIGN.md */
+
+:root {
+  --primary: #0066cc;
+  --primary-focus: #0071e3;
+  --ink: #1d1d1f;
+  --body-on-dark: #ffffff;
+  --ink-muted-80: #333333;
+  --ink-muted-48: #7a7a7a;
+  --hairline: #e0e0e0;
+  --canvas: #ffffff;
+  --canvas-parchment: #f5f5f7;
+  --surface-black: #000000;
+  --on-primary: #ffffff;
+
+  --font-display: "SF Pro Display", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-text: "SF Pro Text", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+
+  --section: 80px;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-text);
+  -webkit-font-smoothing: antialiased;
+}
+
+a { text-decoration: none; color: inherit; }
+ul { list-style: none; margin: 0; padding: 0; }
+
+/* Global nav */
+.global-nav {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  height: 44px;
+  background: var(--surface-black);
+  color: var(--body-on-dark);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+}
+.global-nav__wordmark {
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.224px;
+}
+
+/* Buttons */
+.btn {
+  display: inline-block;
+  font-family: var(--font-text);
+  font-size: 17px;
+  font-weight: 400;
+  letter-spacing: -0.374px;
+  border-radius: 9999px;
+  padding: 11px 22px;
+  transition: transform 0.15s ease;
+}
+.btn:active { transform: scale(0.95); }
+.btn--primary {
+  background: var(--primary);
+  color: var(--on-primary);
+}
+.btn--primary:focus-visible {
+  outline: 2px solid var(--primary-focus);
+  outline-offset: 2px;
+}
+.text-link {
+  color: var(--primary);
+  font-size: 17px;
+}
+
+/* Hero tile */
+.hero-tile {
+  background: var(--canvas);
+  color: var(--ink);
+  text-align: center;
+  padding: var(--section) 24px;
+}
+.hero-tile__title {
+  font-family: var(--font-display);
+  font-size: 56px;
+  font-weight: 600;
+  line-height: 1.07;
+  letter-spacing: -0.28px;
+  margin: 0 0 16px;
+}
+.hero-tile__tagline {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 400;
+  line-height: 1.14;
+  letter-spacing: 0.196px;
+  margin: 0 0 32px;
+  color: var(--ink-muted-80);
+}
+.hero-tile__ctas { display: flex; gap: 16px; justify-content: center; }
+
+/* To-do widget */
+.todo-widget {
+  background: var(--canvas);
+  padding: var(--section) 24px;
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.todo-tabs {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 40px;
+}
+.todo-tab {
+  background: var(--canvas-parchment);
+  color: var(--ink-muted-80);
+  border: none;
+  border-radius: 9999px;
+  font-family: var(--font-text);
+  font-size: 14px;
+  font-weight: 400;
+  letter-spacing: -0.224px;
+  padding: 8px 16px;
+  cursor: pointer;
+}
+.todo-tab.is-active {
+  background: var(--ink);
+  color: var(--body-on-dark);
+}
+
+.todo-date {
+  text-align: center;
+  font-family: var(--font-display);
+  font-size: 21px;
+  font-weight: 600;
+  letter-spacing: 0.231px;
+  margin: 0 0 32px;
+}
+
+.todo-hint {
+  font-size: 14px;
+  color: var(--ink-muted-48);
+  margin: 0 0 24px;
+  text-align: center;
+}
+
+.todo-block { margin-bottom: 40px; }
+.todo-block__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+.todo-block__title {
+  font-family: var(--font-text);
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.374px;
+  margin: 0 0 12px;
+}
+.todo-shuffle { font-size: 14px; background: none; border: none; cursor: pointer; font-family: var(--font-text); }
+
+.todo-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--hairline);
+  border-radius: 18px;
+  overflow: hidden;
+}
+.todo-list:empty { display: none; }
+.todo-list__item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--canvas);
+}
+.todo-list__item + .todo-list__item { border-top: 1px solid var(--hairline); }
+
+.todo-check {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 9999px;
+  border: 1.5px solid var(--ink-muted-48);
+  background: var(--canvas);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  color: transparent;
+  font-size: 13px;
+  line-height: 1;
+}
+.todo-check::after { content: "✓"; }
+.todo-check.is-checked {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--on-primary);
+}
+
+.todo-item__text {
+  flex: 1;
+  font-size: 17px;
+  letter-spacing: -0.374px;
+}
+.todo-list__item.is-done .todo-item__text {
+  color: var(--ink-muted-48);
+  text-decoration: line-through;
+}
+
+.todo-remove {
+  flex: none;
+  background: none;
+  border: none;
+  color: var(--ink-muted-48);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.todo-badge {
+  flex: none;
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: -0.12px;
+  color: var(--primary);
+  background: rgba(0, 102, 204, 0.1);
+  border-radius: 9999px;
+  padding: 3px 10px;
+}
+
+.todo-add {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.todo-input {
+  flex: 1;
+  font-family: var(--font-text);
+  font-size: 17px;
+  color: var(--ink);
+  background: var(--canvas);
+  border: 1px solid var(--hairline);
+  border-radius: 9999px;
+  padding: 11px 20px;
+}
+.todo-input:focus {
+  outline: 2px solid var(--primary-focus);
+  outline-offset: 1px;
+}
+
+.todo-empty {
+  font-size: 14px;
+  color: var(--ink-muted-48);
+  text-align: center;
+  padding: 16px 0;
+}
+
+.workout-grid {
+  border: 1px solid var(--hairline);
+  border-radius: 18px;
+  overflow: hidden;
+}
+.workout-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 16px;
+  background: var(--canvas);
+}
+.workout-row + .workout-row { border-top: 1px solid var(--hairline); }
+.workout-row__label {
+  flex: none;
+  width: 96px;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.224px;
+}
+.workout-row__input {
+  flex: 1;
+  font-family: var(--font-text);
+  font-size: 17px;
+  color: var(--ink);
+  background: none;
+  border: none;
+  padding: 6px 0;
+}
+.workout-row__input:focus { outline: none; }
+.workout-row__input::placeholder { color: var(--ink-muted-48); }
+
+@media (max-width: 640px) {
+  .todo-tabs { flex-wrap: wrap; }
+}
+
+/* Footer */
+.footer {
+  background: var(--canvas-parchment);
+  color: var(--ink-muted-48);
+  padding: 32px 24px;
+  text-align: center;
+}
+.footer__legal {
+  font-size: 12px;
+  margin: 0;
+}
+
+/* Responsive */
+@media (max-width: 1068px) {
+  .hero-tile__title { font-size: 40px; }
+}
+@media (max-width: 640px) {
+  .hero-tile__title { font-size: 34px; }
+  .hero-tile__tagline { font-size: 21px; }
+}
