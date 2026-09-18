@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Soundboard</title>
+<meta name="description" content="A keyboard-driven soundboard for sound effects." />
+<meta name="theme-color" content="#0f1115" />
+<link rel="stylesheet" href="styles.css" />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>%F0%9F%94%8A</text></svg>" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">🔊</span>
+      <h1 id="board-title">Soundboard</h1>
+    </div>
+
+    <div class="controls">
+      <label class="search">
+        <span class="visually-hidden">Search sounds</span>
+        <input id="search" type="search" placeholder="Search…  (/)" autocomplete="off" spellcheck="false" />
+      </label>
+
+      <label class="volume" title="Master volume">
+        <span class="visually-hidden">Master volume</span>
+        <span class="icon" aria-hidden="true">🔉</span>
+        <input id="volume" type="range" min="0" max="100" value="80" />
+      </label>
+
+      <button id="solo" class="toggle" type="button" aria-pressed="false"
+              title="Solo: only one sound plays at a time">Solo</button>
+      <button id="stop-all" class="danger" type="button" title="Stop everything (Esc)">Stop</button>
+      <button id="help-btn" class="ghost" type="button" aria-expanded="false" title="Keyboard shortcuts">?</button>
+    </div>
+  </header>
+
+  <nav id="categories" class="categories" aria-label="Filter by category"></nav>
+
+  <main>
+    <div id="board" class="board" role="list" aria-label="Sound pads"></div>
+    <p id="empty" class="empty" hidden>No sounds match that search.</p>
+    <div id="setup" class="setup" hidden></div>
+  </main>
+
+  <dialog id="help" class="help">
+    <h2>Shortcuts</h2>
+    <dl>
+      <dt><kbd>key</kbd></dt><dd>Play the pad showing that key</dd>
+      <dt><kbd>Shift</kbd> + key / click</dt><dd>Play looped</dd>
+      <dt><kbd>Esc</kbd></dt><dd>Stop everything</dd>
+      <dt><kbd>/</kbd></dt><dd>Jump to search</dd>
+      <dt>Right-click a pad</dt><dd>Stop just that sound</dd>
+      <dt>Star</dt><dd>Pin a pad to the front of the board</dd>
+    </dl>
+    <form method="dialog"><button class="ghost" type="submit">Close</button></form>
+  </dialog>
+
+  <footer class="footer">
+    <span id="status" class="status" role="status" aria-live="polite"></span>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

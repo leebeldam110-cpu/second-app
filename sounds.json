@@ -1,0 +1,17 @@
+{
+  "title": "Soundboard",
+  "sounds": [
+    { "id": "airhorn",    "label": "Air Horn",    "category": "Classic",  "emoji": "📢" },
+    { "id": "rimshot",    "label": "Rimshot",     "category": "Classic",  "emoji": "🥁" },
+    { "id": "applause",   "label": "Applause",    "category": "Crowd",    "emoji": "👏" },
+    { "id": "boo",        "label": "Boo",         "category": "Crowd",    "emoji": "👎" },
+    { "id": "laugh",      "label": "Laugh Track", "category": "Crowd",    "emoji": "😂" },
+    { "id": "crickets",   "label": "Crickets",    "category": "Crowd",    "emoji": "🦗" },
+    { "id": "buzzer",     "label": "Wrong Buzzer","category": "Game",     "emoji": "❌" },
+    { "id": "ding",       "label": "Correct Ding","category": "Game",     "emoji": "✅" },
+    { "id": "fanfare",    "label": "Fanfare",     "category": "Game",     "emoji": "🎺" },
+    { "id": "record-scratch", "label": "Record Scratch", "category": "Transitions", "emoji": "💿" },
+    { "id": "whoosh",     "label": "Whoosh",      "category": "Transitions", "emoji": "💨" },
+    { "id": "sad-trombone", "label": "Sad Trombone", "category": "Transitions", "emoji": "🎷" }
+  ]
+}
