@@ -39,6 +39,19 @@ Any static server works (`npx serve`, `php -S localhost:8000`, GitHub Pages, Net
 | `key`      | no       | auto-assigned          | Keyboard shortcut, one character             |
 | `color`    | no       | cycles through palette | Any CSS color                                |
 | `gain`     | no       | `1`                    | Per-pad volume, e.g. `0.6` to tame a loud clip |
+| `bpm`      | no       | none                   | Turns the pad into a metronome — see below     |
+
+### Metronome pads
+
+An entry with `"bpm"` becomes a metronome rather than a one-shot: clicking starts
+and stops it, and the pad grows − / + buttons for tempo (40–240 BPM, remembered per
+browser). The file behind it should be a single short tick or click — the board
+repeats it on the audio clock, scheduling each beat slightly ahead of time so the
+tempo stays steady even when the page is busy.
+
+```json
+{ "id": "metronome", "label": "Metronome", "emoji": "⏱️", "bpm": 120 }
+```
 
 Pads whose file is missing are dimmed and struck through — the board checks every
 file on load, so you can see at a glance what still needs recording.

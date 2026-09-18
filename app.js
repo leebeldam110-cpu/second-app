@@ -3,6 +3,9 @@
 
 const KEY_POOL = "1234567890qwertyuiopasdfghjklzxcvbnm".split("");
 const FAVORITES_KEY = "soundboard:favorites";
+const TEMPO_KEY = "soundboard:tempos";
+const TEMPO_MIN = 40;
+const TEMPO_MAX = 240;
 
 const el = {
   title: document.getElementById("board-title"),
@@ -24,25 +27,26 @@ const state = {
   filter: "",
   category: "all",
   solo: false,
-  favorites: loadFavorites(),
+  favorites: readStore(FAVORITES_KEY, (v) => new Set(v), () => new Set()),
+  tempos: readStore(TEMPO_KEY, (v) => v, () => ({})),
 };
 
 /* ---------------------------------------------------------------- storage */
 
-function loadFavorites() {
+function readStore(key, hydrate, fallback) {
   try {
-    const raw = localStorage.getItem(FAVORITES_KEY);
-    return new Set(raw ? JSON.parse(raw) : []);
+    const raw = localStorage.getItem(key);
+    return raw ? hydrate(JSON.parse(raw)) : fallback();
   } catch {
-    return new Set();
+    return fallback();
   }
 }
 
-function saveFavorites() {
+function writeStore(key, value) {
   try {
-    localStorage.setItem(FAVORITES_KEY, JSON.stringify([...state.favorites]));
+    localStorage.setItem(key, JSON.stringify(value));
   } catch {
-    /* private mode / blocked storage — favorites just won't persist */
+    /* private mode / blocked storage — the setting just won't persist */
   }
 }
 
@@ -53,7 +57,8 @@ const audio = {
   master: null,
   buffers: new Map(), // id -> AudioBuffer
   loading: new Map(), // id -> Promise
-  playing: new Map(), // id -> Set of { source, gain }
+  playing: new Map(), // id -> Set of voices (one-shots and loops)
+  metronomes: new Map(), // id -> runner
 };
 
 function context() {
@@ -92,17 +97,31 @@ function loadBuffer(sound) {
   return task;
 }
 
-async function play(sound, { loop = false } = {}) {
-  const ctx = context();
+async function trigger(sound, { loop = false } = {}) {
+  // A metronome pad is a toggle, not a one-shot: a second press turns it off.
+  if (sound.bpm) {
+    if (audio.metronomes.has(sound.id)) {
+      stop(sound.id);
+      return;
+    }
+  }
 
-  if (state.solo) stopAll();
-  else stop(sound.id);
+  const ctx = context();
 
   let buffer;
   try {
     buffer = await loadBuffer(sound);
   } catch (err) {
     setStatus(`Couldn't load ${sound.file} — ${err.message}`);
+    return;
+  }
+
+  if (state.solo) stopAll();
+  else stop(sound.id);
+
+  if (sound.bpm) {
+    startMetronome(sound, buffer);
+    paintPlaying(sound.id, { sustained: true });
     return;
   }
 
@@ -129,25 +148,92 @@ async function play(sound, { loop = false } = {}) {
   };
 
   source.start();
-  paintPlaying(sound.id, { loop, duration: buffer.duration });
+  paintPlaying(sound.id, { loop, sustained: loop, duration: buffer.duration });
+}
+
+/* Lookahead scheduler: ticks are queued on the audio clock a fraction of a
+   second early, so tempo stays steady even when the main thread is busy. */
+function startMetronome(sound, buffer) {
+  const ctx = context();
+  const runner = {
+    timer: null,
+    next: ctx.currentTime + 0.1,
+    sources: new Set(),
+    bpm: tempoFor(sound),
+  };
+
+  const schedule = () => {
+    while (runner.next < ctx.currentTime + 0.25) {
+      const gain = ctx.createGain();
+      gain.gain.value = sound.gain;
+      gain.connect(audio.master);
+
+      const source = ctx.createBufferSource();
+      source.buffer = buffer;
+      source.connect(gain);
+      source.onended = () => runner.sources.delete(source);
+      source.start(runner.next);
+
+      runner.sources.add(source);
+      runner.next += 60 / runner.bpm;
+    }
+  };
+
+  audio.metronomes.set(sound.id, runner);
+  schedule();
+  runner.timer = setInterval(schedule, 40);
 }
 
 function stop(id) {
-  const voices = audio.playing.get(id);
-  if (!voices) return;
-  for (const { source } of voices) {
-    try {
-      source.stop();
-    } catch {
-      /* already stopped */
+  const runner = audio.metronomes.get(id);
+  if (runner) {
+    clearInterval(runner.timer);
+    for (const source of runner.sources) {
+      try {
+        source.stop();
+      } catch {
+        /* not started yet, or already stopped */
+      }
     }
+    audio.metronomes.delete(id);
   }
-  audio.playing.delete(id);
+
+  const voices = audio.playing.get(id);
+  if (voices) {
+    for (const { source } of voices) {
+      try {
+        source.stop();
+      } catch {
+        /* already stopped */
+      }
+    }
+    audio.playing.delete(id);
+  }
+
   paintPlaying(id);
 }
 
 function stopAll() {
-  for (const id of [...audio.playing.keys()]) stop(id);
+  for (const id of new Set([...audio.playing.keys(), ...audio.metronomes.keys()])) stop(id);
+}
+
+/* ------------------------------------------------------------------ tempo */
+
+function tempoFor(sound) {
+  const saved = Number(state.tempos[sound.id]);
+  return Number.isFinite(saved) && saved > 0 ? saved : sound.bpm;
+}
+
+function setTempo(sound, bpm) {
+  const clamped = Math.min(TEMPO_MAX, Math.max(TEMPO_MIN, bpm));
+  state.tempos[sound.id] = clamped;
+  writeStore(TEMPO_KEY, state.tempos);
+
+  const runner = audio.metronomes.get(sound.id);
+  if (runner) runner.bpm = clamped; // takes effect on the next scheduled tick
+
+  const readout = padFor(sound.id)?.querySelector(".tempo-value");
+  if (readout) readout.textContent = `${clamped} BPM`;
 }
 
 /* ----------------------------------------------------------------- render */
@@ -156,11 +242,11 @@ function padFor(id) {
   return el.board.querySelector(`[data-id="${CSS.escape(id)}"]`);
 }
 
-function paintPlaying(id, { loop = false, duration = 0 } = {}) {
+function paintPlaying(id, { loop = false, sustained = false, duration = 0 } = {}) {
   const pad = padFor(id);
   if (!pad) return;
 
-  const active = audio.playing.has(id);
+  const active = audio.playing.has(id) || audio.metronomes.has(id);
   pad.classList.toggle("is-playing", active);
   pad.classList.toggle("is-looping", active && loop);
 
@@ -170,9 +256,9 @@ function paintPlaying(id, { loop = false, duration = 0 } = {}) {
   bar.style.transition = "none";
   bar.style.transform = "scaleX(0)";
 
-  if (active && !loop && duration > 0) {
-    // force a reflow so the reset above is not coalesced with the animation
-    void bar.offsetWidth;
+  // A looping clip or a running metronome has no end to count down to.
+  if (active && !sustained && duration > 0) {
+    void bar.offsetWidth; // force a reflow so the reset isn't coalesced away
     bar.style.transition = `transform ${duration}s linear`;
     bar.style.transform = "scaleX(1)";
   }
@@ -181,10 +267,9 @@ function paintPlaying(id, { loop = false, duration = 0 } = {}) {
 function markMissing(sound, missing) {
   sound.missing = missing;
   const pad = padFor(sound.id);
-  if (pad) {
-    pad.classList.toggle("is-missing", missing);
-    pad.title = missing ? `File not found: ${sound.file}` : sound.label;
-  }
+  if (!pad) return;
+  pad.classList.toggle("is-missing", missing);
+  pad.querySelector(".pad-hit").title = missing ? `File not found: ${sound.file}` : sound.label;
 }
 
 function visibleSounds() {
@@ -210,23 +295,32 @@ function renderBoard() {
   el.empty.hidden = sounds.length > 0;
 
   // repaint transient state for pads that survived the re-render
-  for (const id of audio.playing.keys()) paintPlaying(id, { loop: true });
+  for (const id of audio.playing.keys()) paintPlaying(id, { sustained: true });
+  for (const id of audio.metronomes.keys()) paintPlaying(id, { sustained: true });
   for (const sound of sounds) if (sound.missing) markMissing(sound, true);
 }
 
+/* The pad is a container, not a button: a full-bleed hit target sits behind the
+   contents so the star and tempo controls can be real buttons in their own
+   right rather than illegal nested ones. */
 function buildPad(sound) {
-  const pad = document.createElement("button");
-  pad.type = "button";
+  const pad = document.createElement("div");
   pad.className = "pad";
   pad.dataset.id = sound.id;
   pad.setAttribute("role", "listitem");
   pad.style.setProperty("--pad-color", sound.color);
-  pad.title = sound.label;
 
-  const top = document.createElement("span");
-  top.className = "pad-emoji";
-  top.textContent = sound.emoji;
-  top.setAttribute("aria-hidden", "true");
+  const hit = document.createElement("button");
+  hit.type = "button";
+  hit.className = "pad-hit";
+  hit.title = sound.label;
+  hit.setAttribute("aria-label", sound.bpm ? `Start or stop ${sound.label}` : `Play ${sound.label}`);
+  hit.addEventListener("click", (event) => trigger(sound, { loop: event.shiftKey }));
+
+  const emoji = document.createElement("span");
+  emoji.className = "pad-emoji";
+  emoji.textContent = sound.emoji;
+  emoji.setAttribute("aria-hidden", "true");
 
   const label = document.createElement("span");
   label.className = "pad-label";
@@ -250,20 +344,9 @@ function buildPad(sound) {
   const progress = document.createElement("span");
   progress.className = "pad-progress";
 
-  const star = document.createElement("button");
-  star.type = "button";
-  star.className = "star";
-  const faved = state.favorites.has(sound.id);
-  star.setAttribute("aria-pressed", String(faved));
-  star.setAttribute("aria-label", `${faved ? "Unpin" : "Pin"} ${sound.label}`);
-  star.textContent = faved ? "★" : "☆";
-  star.addEventListener("click", (event) => {
-    event.stopPropagation();
-    toggleFavorite(sound);
-  });
+  pad.append(hit, emoji, label, meta, progress, buildStar(sound));
+  if (sound.bpm) pad.append(buildTempo(sound));
 
-  pad.append(top, label, meta, progress, star);
-  pad.addEventListener("click", (event) => play(sound, { loop: event.shiftKey }));
   pad.addEventListener("contextmenu", (event) => {
     event.preventDefault();
     stop(sound.id);
@@ -272,11 +355,43 @@ function buildPad(sound) {
   return pad;
 }
 
-function toggleFavorite(sound) {
-  if (state.favorites.has(sound.id)) state.favorites.delete(sound.id);
-  else state.favorites.add(sound.id);
-  saveFavorites();
-  renderBoard();
+function buildStar(sound) {
+  const star = document.createElement("button");
+  star.type = "button";
+  star.className = "star";
+  const faved = state.favorites.has(sound.id);
+  star.setAttribute("aria-pressed", String(faved));
+  star.setAttribute("aria-label", `${faved ? "Unpin" : "Pin"} ${sound.label}`);
+  star.textContent = faved ? "★" : "☆";
+  star.addEventListener("click", () => {
+    if (state.favorites.has(sound.id)) state.favorites.delete(sound.id);
+    else state.favorites.add(sound.id);
+    writeStore(FAVORITES_KEY, [...state.favorites]);
+    renderBoard();
+  });
+  return star;
+}
+
+function buildTempo(sound) {
+  const wrap = document.createElement("span");
+  wrap.className = "tempo";
+
+  const step = (delta, symbol) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "tempo-step";
+    button.textContent = symbol;
+    button.setAttribute("aria-label", `${delta > 0 ? "Increase" : "Decrease"} tempo`);
+    button.addEventListener("click", () => setTempo(sound, tempoFor(sound) + delta));
+    return button;
+  };
+
+  const value = document.createElement("span");
+  value.className = "tempo-value";
+  value.textContent = `${tempoFor(sound)} BPM`;
+
+  wrap.append(step(-5, "−"), value, step(5, "+"));
+  return wrap;
 }
 
 function renderCategories() {
@@ -318,21 +433,23 @@ function normalize(raw, index, usedKeys) {
     .replace(/^-|-$/g, "");
 
   const label = raw.label ?? raw.name ?? id.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-  const category = raw.category ?? "";
 
   let key = (raw.key ?? "").toLowerCase().slice(0, 1);
   if (!key || usedKeys.has(key)) key = KEY_POOL.find((k) => !usedKeys.has(k)) ?? "";
   if (key) usedKeys.add(key);
 
+  const bpm = Number(raw.bpm);
+
   return {
     id,
     label,
-    category,
     key,
+    category: raw.category ?? "",
     file: raw.file ?? `sounds/${id}.mp3`,
     emoji: raw.emoji ?? "🔊",
     color: raw.color ?? PALETTE[index % PALETTE.length],
     gain: typeof raw.gain === "number" ? raw.gain : 1,
+    bpm: Number.isFinite(bpm) && bpm > 0 ? bpm : null,
     order: index,
     missing: false,
   };
@@ -367,7 +484,7 @@ function showSetup(message) {
            <pre>{
   "title": "My Soundboard",
   "sounds": [
-    { "id": "airhorn", "label": "Air Horn", "category": "Classic", "emoji": "📢" }
+    { "id": "door-slam", "label": "Wooden Door Slam", "emoji": "🚪" }
   ]
 }</pre>
            <p>Each entry looks for <code>sounds/&lt;id&gt;.mp3</code> unless you set
@@ -384,8 +501,7 @@ function bindControls() {
   });
 
   el.volume.addEventListener("input", () => {
-    const value = Number(el.volume.value) / 100;
-    if (audio.master) audio.master.gain.value = value;
+    if (audio.master) audio.master.gain.value = Number(el.volume.value) / 100;
   });
 
   el.solo.addEventListener("click", () => {
@@ -431,7 +547,7 @@ function bindControls() {
     if (!sound) return;
 
     event.preventDefault();
-    play(sound, { loop: event.shiftKey });
+    trigger(sound, { loop: event.shiftKey });
   });
 }
 

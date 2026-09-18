@@ -1,17 +1,17 @@
 {
   "title": "Soundboard",
   "sounds": [
-    { "id": "airhorn",    "label": "Air Horn",    "category": "Classic",  "emoji": "📢" },
-    { "id": "rimshot",    "label": "Rimshot",     "category": "Classic",  "emoji": "🥁" },
-    { "id": "applause",   "label": "Applause",    "category": "Crowd",    "emoji": "👏" },
-    { "id": "boo",        "label": "Boo",         "category": "Crowd",    "emoji": "👎" },
-    { "id": "laugh",      "label": "Laugh Track", "category": "Crowd",    "emoji": "😂" },
-    { "id": "crickets",   "label": "Crickets",    "category": "Crowd",    "emoji": "🦗" },
-    { "id": "buzzer",     "label": "Wrong Buzzer","category": "Game",     "emoji": "❌" },
-    { "id": "ding",       "label": "Correct Ding","category": "Game",     "emoji": "✅" },
-    { "id": "fanfare",    "label": "Fanfare",     "category": "Game",     "emoji": "🎺" },
-    { "id": "record-scratch", "label": "Record Scratch", "category": "Transitions", "emoji": "💿" },
-    { "id": "whoosh",     "label": "Whoosh",      "category": "Transitions", "emoji": "💨" },
-    { "id": "sad-trombone", "label": "Sad Trombone", "category": "Transitions", "emoji": "🎷" }
+    { "id": "metronome", "label": "Metronome", "category": "Rhythm", "emoji": "⏱️", "key": "m", "bpm": 120 },
+
+    { "id": "door-slam", "label": "Wooden Door Slam", "category": "Impacts", "emoji": "🚪", "key": "d" },
+
+    { "id": "gunshot-victorian", "label": "Victorian Gunshot", "category": "Weapons", "emoji": "💥", "key": "g" },
+
+    { "id": "scream-man",    "label": "Man Screaming",    "category": "Screams", "emoji": "😱", "key": "1" },
+    { "id": "scream-woman",  "label": "Woman Screaming",  "category": "Screams", "emoji": "😨", "key": "2" },
+    { "id": "scream-child",  "label": "Child Screaming",  "category": "Screams", "emoji": "🧒", "key": "3" },
+    { "id": "scream-terror", "label": "Blood-Curdling",   "category": "Screams", "emoji": "🩸", "key": "4" },
+    { "id": "scream-distant","label": "Distant Scream",   "category": "Screams", "emoji": "🌫️", "key": "5", "gain": 0.7 },
+    { "id": "scream-yelp",   "label": "Short Yelp",       "category": "Screams", "emoji": "🗣️", "key": "6" }
   ]
 }
