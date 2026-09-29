@@ -3,32 +3,38 @@
 <title>London, 1886</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&family=IM+Fell+English:ital@0;1&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&family=IM+Fell+English:ital@0;1&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;0,800;1,400;1,600&display=swap">
 <style>
 :root{
   --ground:#E9E4D6; --land:#F4EFE2; --ink:#2A2A33; --ink-soft:#6B6878;
-  --water:#9CCBE3; --water-edge:#6FA6C4; --park:#C4DDA6; --park-edge:#9DBE7C;
-  --road:#FFFFFF; --road-edge:#CFC4AE; --rail:#8C8698;
+  --water:#9CCBE3; --water-edge:#6FA6C4; --park:#C4DDA6; --park-edge:#9DBE7C; --park-ink:#5E7F3E; --marsh:#DCE3C4;
+  --road:#FFFFFF; --road-edge:#CFC4AE; --rail:#77727F; --under:#B8453A; --tram:#2E7D5B;
   --panel:#FBF8F1; --panel-2:#F0EBDE; --line:rgba(42,42,51,.14);
-  --west:#6A4C9C; --lamb:#C8621E; --cut:#A7800A; --china:#C0392B; --bridge:#1F5F86;
+  --focus:#D2691E;
+  --t-gov:#6A4C9C; --t-church:#8A5A2B; --t-stage:#C2417A; --t-trade:#A7800A; --t-care:#2F7F6F;
+  --t-learn:#4E7A2E; --t-industry:#5E6470; --t-hood:#C0392B; --t-station:#2A2A33; --t-bridge:#1F5F86; --t-pier:#1F5F86;
   color-scheme:light;
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
     --ground:#121518; --land:#1C2024; --ink:#ECE6D6; --ink-soft:#A29D90;
-    --water:#23465A; --water-edge:#3A6883; --park:#27402A; --park-edge:#3C5C3E;
-    --road:#3A3F45; --road-edge:#2A2E33; --rail:#77727F;
+    --water:#23465A; --water-edge:#3A6883; --park:#27402A; --park-edge:#3C5C3E; --park-ink:#8FBF7A; --marsh:#252E24;
+    --road:#3A3F45; --road-edge:#2A2E33; --rail:#8E8998; --under:#E0735F; --tram:#5CC49A;
     --panel:#181B1F; --panel-2:#22262B; --line:rgba(236,230,214,.14);
-    --west:#B89BEA; --lamb:#F0A060; --cut:#E6C555; --china:#F07A6C; --bridge:#7EC4EA;
+    --focus:#F0A060;
+    --t-gov:#B89BEA; --t-church:#D9A36E; --t-stage:#F07AAE; --t-trade:#E6C555; --t-care:#6CCDB8;
+    --t-learn:#9BCF6E; --t-industry:#A8AEB9; --t-hood:#F07A6C; --t-station:#ECE6D6; --t-bridge:#7EC4EA; --t-pier:#7EC4EA;
     color-scheme:dark;
   }
 }
 :root[data-theme="dark"]{
   --ground:#121518; --land:#1C2024; --ink:#ECE6D6; --ink-soft:#A29D90;
-  --water:#23465A; --water-edge:#3A6883; --park:#27402A; --park-edge:#3C5C3E;
-  --road:#3A3F45; --road-edge:#2A2E33; --rail:#77727F;
+  --water:#23465A; --water-edge:#3A6883; --park:#27402A; --park-edge:#3C5C3E; --park-ink:#8FBF7A; --marsh:#252E24;
+  --road:#3A3F45; --road-edge:#2A2E33; --rail:#8E8998; --under:#E0735F; --tram:#5CC49A;
   --panel:#181B1F; --panel-2:#22262B; --line:rgba(236,230,214,.14);
-  --west:#B89BEA; --lamb:#F0A060; --cut:#E6C555; --china:#F07A6C; --bridge:#7EC4EA;
+  --focus:#F0A060;
+  --t-gov:#B89BEA; --t-church:#D9A36E; --t-stage:#F07AAE; --t-trade:#E6C555; --t-care:#6CCDB8;
+  --t-learn:#9BCF6E; --t-industry:#A8AEB9; --t-hood:#F07A6C; --t-station:#ECE6D6; --t-bridge:#7EC4EA; --t-pier:#7EC4EA;
   color-scheme:dark;
 }
 html,body{height:100%}
@@ -36,7 +42,7 @@ html,body{height:100%}
 body{margin:0;background:var(--ground);color:var(--ink);font:15px/1.5 "Source Sans 3","Segoe UI",system-ui,sans-serif;overflow:hidden}
 *{box-sizing:border-box}
 button,input{font:inherit;color:inherit}
-:focus-visible{outline:2px solid var(--bridge);outline-offset:2px}
+:focus-visible{outline:2px solid var(--t-bridge);outline-offset:2px}
 
 .app{height:100%;display:grid;grid-template-columns:minmax(0,1fr) 360px}
 .mapwrap{position:relative;overflow:hidden;background:var(--ground);touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;overscroll-behavior:contain}
@@ -47,54 +53,58 @@ button,input{font:inherit;color:inherit}
 .land{fill:var(--land)}
 .edge{fill:none;stroke:var(--ink-soft);stroke-width:1.5}
 .park{fill:var(--park);stroke:var(--park-edge);stroke-width:1}
+.marsh{fill:var(--marsh)}
 .w-edge{fill:none;stroke:var(--water-edge);stroke-linecap:round;stroke-linejoin:round}
 .w-fill{fill:none;stroke:var(--water);stroke-linecap:round;stroke-linejoin:round}
 .dock{fill:var(--water);stroke:var(--water-edge);stroke-width:1}
 .road-e{fill:none;stroke:var(--road-edge);stroke-linecap:round;stroke-linejoin:round}
 .road{fill:none;stroke:var(--road);stroke-linecap:round;stroke-linejoin:round}
-.rail{fill:none;stroke:var(--rail);stroke-width:1.6;stroke-dasharray:6 3}
-.area{fill-opacity:.13;stroke-width:1.6;stroke-dasharray:7 5}
-.bridge-bar{stroke-linecap:butt;fill:none}
+.rail{fill:none;stroke:var(--rail);stroke-width:2;stroke-dasharray:7 3}
+.under{fill:none;stroke:var(--under);stroke-width:2.2;stroke-dasharray:2 3;stroke-linecap:round}
+.tram{fill:none;stroke:var(--tram);stroke-width:2.4;stroke-linecap:round;opacity:.85}
+.area{fill:var(--focus);fill-opacity:.1;stroke:var(--focus);stroke-width:1.6;stroke-dasharray:7 5}
+.bar{stroke-linecap:butt;fill:none}
 
+text{pointer-events:none}
 .lbl{paint-order:stroke;stroke:var(--land);stroke-width:3.5px;stroke-linejoin:round}
-.lbl-area{font:700 13px "Source Sans 3",system-ui,sans-serif;letter-spacing:.2em}
-.lbl-river{font:italic 16px "Source Sans 3",system-ui,sans-serif;fill:var(--water-edge);stroke:none;letter-spacing:.4em}
-.lbl-park{font:italic 12px "Source Sans 3",system-ui,sans-serif;fill:var(--ink-soft);stroke:var(--park)}
-.lbl-street{font:10.5px "Source Sans 3",system-ui,sans-serif;fill:var(--ink-soft);stroke:var(--road);letter-spacing:.03em}
-.lbl-place{font:600 13px "Source Sans 3",system-ui,sans-serif;fill:var(--ink)}
-.lbl-bridge{font:italic 600 12px "Source Sans 3",system-ui,sans-serif;fill:var(--bridge)}
+.f-focus{font:800 14px "Source Sans 3",system-ui,sans-serif;letter-spacing:.18em;fill:var(--focus)}
+.f-d1{font:700 13px "Source Sans 3",system-ui,sans-serif;letter-spacing:.18em;fill:var(--ink-soft)}
+.f-d2{font:600 11px "Source Sans 3",system-ui,sans-serif;letter-spacing:.12em;fill:var(--ink-soft)}
+.f-park{font:italic 12px "Source Sans 3",system-ui,sans-serif;fill:var(--park-ink)}
+.f-water{font:italic 12px "Source Sans 3",system-ui,sans-serif;fill:var(--water-edge)}
+.f-river{font:italic 16px "Source Sans 3",system-ui,sans-serif;fill:var(--water-edge);letter-spacing:.4em;stroke:none}
+.f-street{font:10.5px "Source Sans 3",system-ui,sans-serif;fill:var(--ink-soft);stroke:var(--road)}
+.f-place{font:600 12.5px "Source Sans 3",system-ui,sans-serif;fill:var(--ink)}
+.f-small{font:italic 11px "Source Sans 3",system-ui,sans-serif;fill:var(--ink-soft)}
+.f-bridge{font:italic 600 12px "Source Sans 3",system-ui,sans-serif;fill:var(--t-bridge)}
 
 .pl{cursor:pointer}
 .pl .hit{fill:transparent}
-.pl .dotm{stroke:var(--land);stroke-width:2}
-.pl .ring{fill:none;stroke-width:2.5;opacity:0}
+.pl .dot{stroke:var(--land);stroke-width:1.8}
+.pl .ring{fill:none;stroke:var(--ink);stroke-width:2.5;opacity:0}
 .pl.sel .ring{opacity:1}
-.pl .num{fill:var(--land);stroke:var(--bridge);stroke-width:1.8}
-.pl .numt{font:700 10px "Source Sans 3",system-ui,sans-serif;fill:var(--bridge);text-anchor:middle}
-.pl:hover .lbl-place,.pl.sel .lbl-place{text-decoration:underline}
-.pl.dim{opacity:.2}
-
-/* labels appear as you zoom */
-.z-2,.z-3,.lbl-street{display:none}
-svg.z2 .z-2{display:inline}
-svg.z3 .z-2,svg.z3 .z-3{display:inline}
-svg.z2 .lbl-street,svg.z3 .lbl-street{display:inline}
-svg.filtered .pl:not(.dim).z-2,svg.filtered .pl:not(.dim).z-3,svg.filtered .pl:not(.dim) .z-3{display:inline}
-svg.no-rail .L-rail,svg.no-streets .L-streets,svg.no-areas .L-areas{display:none}
+.pl .num{fill:var(--land);stroke:var(--t-bridge);stroke-width:1.8}
+.pl .numt{font:700 10px "Source Sans 3",system-ui,sans-serif;fill:var(--t-bridge);text-anchor:middle}
+.pl.dim{opacity:.18}
 
 /* ---------- chrome ---------- */
 .title{position:absolute;top:14px;left:14px;padding:8px 14px 9px;background:var(--panel);border:1.5px solid var(--ink);border-radius:4px;pointer-events:none}
 .title h1{margin:0;font:400 30px/1 "IM Fell English SC",Georgia,serif;letter-spacing:.05em}
 .title div{font:italic 14px "IM Fell English",Georgia,serif;color:var(--ink-soft)}
-.ctrls{position:absolute;top:14px;right:14px;display:flex;flex-direction:column;gap:6px}
+.ctrls{position:absolute;top:14px;right:14px;display:flex;flex-direction:column;gap:6px;z-index:4}
 .btn{width:40px;height:40px;display:grid;place-items:center;background:var(--panel);border:1.5px solid var(--ink);border-radius:4px;cursor:pointer;font-size:22px;line-height:1;padding:0}
 .btn:hover{background:var(--panel-2)}
 .btn svg{width:18px;height:18px;stroke:var(--ink);fill:none;stroke-width:1.6}
 .btn[aria-pressed="true"]{background:var(--ink);color:var(--panel)}
 .btn[aria-pressed="true"] svg{stroke:var(--panel)}
-.layers{position:absolute;top:14px;right:62px;background:var(--panel);border:1.5px solid var(--ink);border-radius:4px;padding:10px 14px;display:grid;gap:6px;z-index:3}
-.layers label{display:flex;align-items:center;gap:9px;cursor:pointer}
-.layers input{accent-color:var(--bridge);width:16px;height:16px;margin:0}
+.layers{position:absolute;top:14px;right:62px;width:250px;max-height:calc(100% - 28px);overflow:auto;background:var(--panel);border:1.5px solid var(--ink);border-radius:4px;padding:6px 14px 12px;z-index:3}
+.layers h3{margin:10px 0 4px;font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft)}
+.layers label{display:flex;align-items:center;gap:9px;cursor:pointer;padding:2px 0;font-size:14px}
+.layers input{accent-color:var(--t-bridge);width:16px;height:16px;margin:0;flex:none}
+.key{width:22px;height:10px;flex:none;display:grid;place-items:center}
+.key i{display:block;width:10px;height:10px;border-radius:50%}
+.zoomhint{position:absolute;left:50%;transform:translateX(-50%);bottom:14px;background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:3px 10px;font-size:13px;color:var(--ink-soft);pointer-events:none;white-space:nowrap}
+.zoomhint b{color:var(--ink);font-weight:600}
 .scale{position:absolute;left:14px;bottom:14px;background:var(--panel);border:1.5px solid var(--ink);border-radius:4px;padding:5px 10px 4px;pointer-events:none;font-size:12px}
 .scale .bar{height:6px;display:flex;border:1px solid var(--ink)}
 .scale .bar i{flex:1;background:var(--ink)} .scale .bar i:nth-child(even){background:var(--panel)}
@@ -106,7 +116,7 @@ svg.no-rail .L-rail,svg.no-streets .L-streets,svg.no-areas .L-areas{display:none
 .panel{background:var(--panel);border-left:1.5px solid var(--ink);display:flex;flex-direction:column;min-height:0}
 .detail{padding:16px 18px 14px;border-bottom:1px solid var(--line);flex:none;max-height:55%;overflow:auto}
 .detail .cat{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft)}
-.sw{width:11px;height:11px;border-radius:50%;flex:none}
+.sw{width:11px;height:11px;border-radius:50%;flex:none;display:inline-block}
 .detail h2{margin:4px 0 2px;font:400 26px/1.15 "IM Fell English",Georgia,serif;text-wrap:balance}
 .detail .meta{font-size:14px;color:var(--ink-soft);font-style:italic}
 .detail p{margin:10px 0 0}
@@ -119,39 +129,37 @@ svg.no-rail .L-rail,svg.no-streets .L-streets,svg.no-areas .L-areas{display:none
 .search{padding:10px 18px;position:sticky;top:0;background:var(--panel);z-index:1;border-bottom:1px solid var(--line)}
 .search input{width:100%;padding:7px 10px;border:1px solid var(--line);border-radius:4px;background:var(--land)}
 .list{list-style:none;margin:0;padding:0 0 16px}
-.list .grp{display:flex;align-items:center;gap:8px;padding:14px 18px 4px;font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase}
+.list .grp{padding:14px 18px 4px;font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--focus)}
 .list .grp em{font-weight:400;letter-spacing:0;text-transform:none;color:var(--ink-soft)}
-.list button{width:100%;text-align:left;background:none;border:0;padding:6px 18px;cursor:pointer;display:grid;grid-template-columns:22px 1fr auto;gap:8px;align-items:baseline}
+.list button{width:100%;text-align:left;background:none;border:0;padding:6px 18px;cursor:pointer;display:grid;grid-template-columns:22px 1fr auto;gap:8px;align-items:center}
 .list button:hover,.list button[aria-current="true"]{background:var(--panel-2)}
-.list .no{font-size:12px;font-weight:700;color:var(--bridge);text-align:right;font-variant-numeric:tabular-nums}
+.list .no{font-size:12px;font-weight:700;color:var(--t-bridge);text-align:center;font-variant-numeric:tabular-nums}
 .list .yr{font-size:13px;color:var(--ink-soft);font-variant-numeric:tabular-nums}
 .empty{padding:16px 18px;font-style:italic;color:var(--ink-soft)}
 
 @media (max-width:760px){
   .app{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) auto}
-  .panel{border-left:0;border-top:1.5px solid var(--ink);max-height:44vh;overflow:auto}
+  .panel{border-left:0;border-top:1.5px solid var(--ink);max-height:42vh;overflow:auto}
   .detail{max-height:none}
   .tabbody{overflow:visible}
   .title h1{font-size:24px}
   .title div{font-size:12px}
+  .zoomhint{display:none}
 }
 </style>
 
 <div class="app">
   <main class="mapwrap" id="mapwrap" aria-label="Map of London in 1886">
-    <svg id="map" class="z2" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Plan of London, 1886"><g id="world"></g></svg>
+    <svg id="map" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Plan of London, 1886"><g id="world"></g></svg>
     <div class="title" aria-hidden="true"><h1>London, 1886</h1><div>A reference plan</div></div>
     <div class="ctrls">
       <button class="btn" id="zin" aria-label="Zoom in" title="Zoom in">+</button>
       <button class="btn" id="zout" aria-label="Zoom out" title="Zoom out">&minus;</button>
-      <button class="btn" id="zfit" aria-label="Show whole map" title="Show whole map"><svg viewBox="0 0 18 18"><path d="M2 6V2h4M12 2h4v4M16 12v4h-4M6 16H2v-4"/></svg></button>
+      <button class="btn" id="zfit" aria-label="Show all of London" title="Show all of London"><svg viewBox="0 0 18 18"><path d="M2 6V2h4M12 2h4v4M16 12v4h-4M6 16H2v-4"/></svg></button>
       <button class="btn" id="lyr" aria-label="Layers" title="Layers" aria-pressed="false"><svg viewBox="0 0 18 18"><path d="M9 2 16 6 9 10 2 6Z"/><path d="M2 9.5 9 13.5 16 9.5"/><path d="M2 13 9 17 16 13"/></svg></button>
     </div>
-    <div class="layers" id="layers" hidden>
-      <label><input type="checkbox" id="L-areas" checked> Area outlines</label>
-      <label><input type="checkbox" id="L-streets" checked> Streets</label>
-      <label><input type="checkbox" id="L-rail"> Railways</label>
-    </div>
+    <div class="layers" id="layers" hidden></div>
+    <div class="zoomhint" id="zoomhint"></div>
     <div class="scale"><div class="bar" id="scalebar"></div><div class="t"><span>0</span><span id="scalelbl">1 mile</span></div></div>
     <svg class="compass" viewBox="-22 -22 44 44" aria-hidden="true"><path d="M0-18 6 6 0 2-6 6Z" style="fill:var(--ink)"/><text y="19" text-anchor="middle" style="font:700 11px 'Source Sans 3',sans-serif;fill:var(--ink)">N</text></svg>
     <div class="tip" id="tip" hidden></div>
@@ -160,7 +168,7 @@ svg.no-rail .L-rail,svg.no-streets .L-streets,svg.no-areas .L-areas{display:none
   <aside class="panel" aria-label="Places">
     <section class="detail" id="detail" aria-live="polite"></section>
     <div class="tabbody">
-      <div class="search"><input type="search" id="q" placeholder="Search places and bridges…" aria-label="Search places" autocomplete="off"></div>
+      <div class="search"><input type="search" id="q" placeholder="Search places, bridges, piers…" aria-label="Search places" autocomplete="off"></div>
       <ul class="list" id="list"></ul>
     </div>
   </aside>
@@ -175,7 +183,12 @@ const W=(LON1-LON0)*COS*K, H=(LAT1-LAT0)*K;
 const U_PER_MILE=1609.344/(111320/K);
 const P=([lon,lat])=>[(lon-LON0)*COS*K,(LAT1-lat)*K];
 
-/* ================= geography (lon, lat) ================= */
+/* ================= zoom tiers =================
+   k is screen pixels per map unit. Fully zoomed out is about 0.6 on a laptop. */
+const T0=0, T1=1.0, T2=1.9, T3=3.3;
+const TIER_NAMES=["Area names","Landmarks","Streets & details","Everything"];
+
+/* ================= data (lon, lat) ================= */
 const THAMES=[[-0.2420,51.4895],[-0.2305,51.4884],[-0.2250,51.4835],[-0.2215,51.4770],[-0.2180,51.4705],[-0.2135,51.4668],[-0.2050,51.4645],[-0.1960,51.4640],[-0.1886,51.4652],[-0.1830,51.4685],[-0.1790,51.4740],[-0.1760,51.4790],[-0.1728,51.4818],[-0.1665,51.4829],[-0.1580,51.4840],[-0.1502,51.4847],[-0.1420,51.4855],[-0.1340,51.4868],[-0.1275,51.4882],[-0.1253,51.4910],[-0.1236,51.4945],[-0.1225,51.4980],[-0.1218,51.5008],[-0.1210,51.5040],[-0.1198,51.5065],[-0.1170,51.5088],[-0.1110,51.5100],[-0.1045,51.5095],[-0.0990,51.5093],[-0.0945,51.5087],[-0.0877,51.5079],[-0.0810,51.5070],[-0.0754,51.5055],[-0.0690,51.5045],[-0.0620,51.5042],[-0.0560,51.5041],[-0.0480,51.5058],[-0.0400,51.5074],[-0.0330,51.5068],[-0.0280,51.5040],[-0.0258,51.5000],[-0.0252,51.4950],[-0.0232,51.4895],[-0.0170,51.4866],[-0.0080,51.4860],[-0.0020,51.4882],[0.0000,51.4930],[-0.0008,51.4990],[0.0002,51.5040],[0.0050,51.5074],[0.0110,51.5050],[0.0140,51.5000],[0.0162,51.4945],[0.0230,51.4915],[0.0330,51.4945],[0.0450,51.4972]];
 const CANALS=[
   {n:"Regent's Canal",w:3.4,pts:[[-0.1855,51.5222],[-0.1760,51.5262],[-0.1690,51.5305],[-0.1650,51.5335],[-0.1560,51.5362],[-0.1500,51.5362],[-0.1470,51.5400],[-0.1440,51.5412],[-0.1380,51.5392],[-0.1300,51.5372],[-0.1250,51.5352],[-0.1180,51.5350],[-0.1060,51.5342],[-0.0975,51.5318],[-0.0880,51.5343],[-0.0760,51.5355],[-0.0620,51.5360],[-0.0520,51.5350],[-0.0440,51.5318],[-0.0405,51.5255],[-0.0385,51.5190],[-0.0372,51.5140],[-0.0365,51.5108]]},
@@ -210,41 +223,6 @@ const DOCKS=[
   [-0.0470,51.4990,-0.0420,51.5010],[-0.0410,51.4978,-0.0340,51.4994],[-0.0460,51.4955,-0.0395,51.4970],[-0.0330,51.4995,-0.0300,51.5035],
   [-0.0025,51.5090,0.0020,51.5105],[0.0120,51.5068,0.0450,51.5086],
 ];
-const STREETS=[
-  {n:"Whitechapel Road",r:1,pts:[[-0.0890,51.5135],[-0.0840,51.5132],[-0.0780,51.5135],[-0.0755,51.5142],[-0.0700,51.5160],[-0.0590,51.5190],[-0.0450,51.5220],[-0.0300,51.5250],[-0.0200,51.5275],[-0.0050,51.5310]]},
-  {n:"Strand",r:1,pts:[[-0.1275,51.5075],[-0.1230,51.5096],[-0.1170,51.5118],[-0.1120,51.5136],[-0.1060,51.5140],[-0.1010,51.5140],[-0.0985,51.5138],[-0.0935,51.5140]]},
-  {n:"Piccadilly",r:1,pts:[[-0.1520,51.5030],[-0.1440,51.5065],[-0.1345,51.5100]]},
-  {n:"Whitehall",r:1,pts:[[-0.1275,51.5075],[-0.1265,51.5035],[-0.1270,51.5008]]},
-  {n:"Victoria Street",r:2,pts:[[-0.1270,51.5008],[-0.1340,51.4985],[-0.1432,51.4965]]},
-  {n:"The Mall",r:2,pts:[[-0.1285,51.5064],[-0.1410,51.5026]]},
-  {n:"Commercial Road",r:1,pts:[[-0.0700,51.5152],[-0.0600,51.5135],[-0.0470,51.5125],[-0.0370,51.5120],[-0.0250,51.5115],[-0.0100,51.5110],[0.0030,51.5120],[0.0200,51.5140],[0.0450,51.5150]]},
-  {n:"Ratcliff Highway",r:2,pts:[[-0.0730,51.5105],[-0.0620,51.5100],[-0.0480,51.5096],[-0.0380,51.5100]]},
-  {n:"Borough High Street",r:1,pts:[[-0.0875,51.5062],[-0.0915,51.5010],[-0.0940,51.4980],[-0.0992,51.4958],[-0.1050,51.4900],[-0.1110,51.4830],[-0.1140,51.4720],[-0.1150,51.4560]]},
-  {n:"Westminster Bridge Road",r:2,pts:[[-0.1195,51.5008],[-0.1110,51.4990],[-0.1050,51.4985],[-0.0992,51.4958]]},
-  {n:"Blackfriars Road",r:2,pts:[[-0.1045,51.5082],[-0.1050,51.4985]]},
-  {n:"Waterloo Road",r:2,pts:[[-0.1150,51.5072],[-0.1110,51.5020],[-0.1050,51.4985]]},
-  {n:"Kennington Road",r:3,pts:[[-0.1110,51.4990],[-0.1120,51.4900],[-0.1110,51.4830]]},
-  {n:"Wandsworth Road",r:2,pts:[[-0.1240,51.4860],[-0.1370,51.4790],[-0.1500,51.4720],[-0.1620,51.4640],[-0.1750,51.4560]]},
-  {n:"Vauxhall Bridge Road",r:2,pts:[[-0.1432,51.4965],[-0.1330,51.4900],[-0.1285,51.4884]]},
-  {n:"Victoria Embankment",r:1,pts:[[-0.1242,51.5020],[-0.1226,51.5065],[-0.1182,51.5094],[-0.1100,51.5112],[-0.1045,51.5110]]},
-  {n:"Queen Victoria Street",r:3,pts:[[-0.1045,51.5110],[-0.0960,51.5118],[-0.0890,51.5135]]},
-  {n:"Northumberland Avenue",r:3,pts:[[-0.1275,51.5075],[-0.1238,51.5060]]},
-  {n:"Tooley Street",r:2,pts:[[-0.0875,51.5062],[-0.0780,51.5042],[-0.0700,51.5012],[-0.0620,51.4990],[-0.0530,51.4962],[-0.0470,51.4930],[-0.0400,51.4890],[-0.0300,51.4850],[-0.0230,51.4790]]},
-  {n:"The New Cut",r:2,pts:[[-0.1098,51.5020],[-0.1070,51.5030],[-0.1047,51.5036]]},
-  {n:"Lower Marsh",r:2,pts:[[-0.1152,51.4995],[-0.1125,51.5005],[-0.1098,51.5018]]},
-  {n:"Stamford Street",r:2,pts:[[-0.1150,51.5072],[-0.1100,51.5078],[-0.1046,51.5080]]},
-  {n:"York Road",r:3,pts:[[-0.1190,51.5008],[-0.1160,51.5040],[-0.1145,51.5070]]},
-  {n:"Lambeth Road",r:2,pts:[[-0.1226,51.4948],[-0.1150,51.4955],[-0.1090,51.4968],[-0.1050,51.4985]]},
-  {n:"Lambeth Palace Road",r:3,pts:[[-0.1192,51.5003],[-0.1200,51.4975],[-0.1215,51.4950]]},
-  {n:"Albert Embankment",r:2,pts:[[-0.1214,51.4950],[-0.1222,51.4910],[-0.1234,51.4876]]},
-  {n:"Lambeth Walk",r:3,pts:[[-0.1158,51.4952],[-0.1150,51.4930],[-0.1142,51.4908]]},
-  {n:"Millbank",r:2,pts:[[-0.1250,51.4980],[-0.1266,51.4935],[-0.1282,51.4903],[-0.1296,51.4885]]},
-  {n:"Great George Street",r:3,pts:[[-0.1270,51.5008],[-0.1310,51.5015],[-0.1340,51.5020],[-0.1410,51.5010]]},
-  {n:"Limehouse Causeway",r:2,pts:[[-0.0335,51.5098],[-0.0300,51.5103],[-0.0258,51.5100]]},
-  {n:"Pennyfields",r:2,pts:[[-0.0258,51.5100],[-0.0225,51.5098],[-0.0195,51.5096]]},
-  {n:"West India Dock Road",r:2,pts:[[-0.0285,51.5124],[-0.0265,51.5110],[-0.0250,51.5092],[-0.0235,51.5072]]},
-  {n:"Narrow Street",r:3,pts:[[-0.0400,51.5090],[-0.0360,51.5092],[-0.0320,51.5082]]},
-];
 const RAIL=[
   {n:"Great Western Railway",pts:[[-0.1759,51.5154],[-0.1850,51.5200],[-0.2000,51.5230],[-0.2250,51.5250],[-0.2450,51.5270]]},
   {n:"London & North Western Railway",pts:[[-0.1335,51.5282],[-0.1400,51.5350],[-0.1480,51.5420],[-0.1600,51.5480],[-0.1750,51.5550],[-0.1900,51.5650]]},
@@ -267,14 +245,6 @@ const RAIL=[
   {n:"Snow Hill link to the Metropolitan",pts:[[-0.1045,51.5172],[-0.1052,51.5200]]},
   {n:"West London Railway",pts:[[-0.2150,51.5300],[-0.2150,51.5250],[-0.2120,51.5100],[-0.2100,51.4980],[-0.1960,51.4850],[-0.1830,51.4760],[-0.1740,51.4680],[-0.1700,51.4640]]},
 ];
-const CATS={
-  west:{l:"Westminster",g:"sq"},
-  lamb:{l:"Lambeth",g:"dot"},
-  cut:{l:"The New Cut",g:"dia"},
-  china:{l:"Chinatown",g:"tri"},
-  bridge:{l:"Bridges & Crossings",g:"arch"},
-};
-// focus-area outlines, with a view box [lon0,lat0,lon1,lat1] for "show me"
 const AREAS=[
   {c:"west",n:"Westminster",l:[-0.1330,51.5020],box:[-0.1420,51.4880,-0.1180,51.5090],pts:[[-0.1300,51.5082],[-0.1228,51.5072],[-0.1226,51.5010],[-0.1240,51.4960],[-0.1262,51.4895],[-0.1300,51.4880],[-0.1420,51.4945],[-0.1420,51.4985],[-0.1330,51.5020],[-0.1300,51.5050]]},
   {c:"lamb",n:"Lambeth",l:[-0.1165,51.4925],box:[-0.1260,51.4850,-0.1040,51.5070],pts:[[-0.1210,51.5062],[-0.1160,51.5074],[-0.1150,51.5040],[-0.1110,51.5012],[-0.1080,51.4990],[-0.1045,51.4930],[-0.1070,51.4870],[-0.1225,51.4868],[-0.1238,51.4950],[-0.1214,51.5010]]},
@@ -306,49 +276,238 @@ const BR=[
  {id:"b-subway",n:"Tower Subway",p:[-0.0790,51.5070],k:"under",r:3,y:"1870 (tunnel)",t:"An iron tube under the river from Tower Hill to Vine Street, Bermondsey. It is a foot tunnel with a halfpenny toll, and the only way across below London Bridge without a boat."},
  {id:"b-tunnel",n:"Thames Tunnel",p:[-0.0555,51.5030],k:"under",y:"Brunel, 1843 (tunnel)",t:"Marc and Isambard Brunel's tunnel from Wapping to Rotherhithe. Since 1869 it carries only the trains of the East London Railway."},
 ];
-const PL=[
- // Westminster
- {id:"westminster",n:"Palace of Westminster",c:"west",r:1,p:[-0.1250,51.4990],y:"1840–70",t:"Barry and Pugin's Gothic Houses of Parliament, with medieval Westminster Hall (1097) kept inside. On 8 June 1886 the Commons defeats Gladstone's Irish Home Rule Bill. The Victoria Tower is at the south end."},
- {id:"bigben",n:"Clock Tower (Big Ben)",c:"west",r:2,p:[-0.1245,51.5007],y:"1859",t:"'Big Ben' is properly the name of the bell. A light at the top of the tower shows when the Commons is sitting after dark."},
- {id:"abbey",n:"Westminster Abbey",c:"west",r:1,a:"l",p:[-0.1277,51.4993],y:"1245–1517",t:"With St Margaret's church beside it on the north side. The Queen's Golden Jubilee service is held here the following June."},
- {id:"aquarium",n:"Royal Aquarium",c:"west",r:3,a:"l",p:[-0.1308,51.5006],y:"1876",t:"A huge glass-and-iron pleasure palace on Tothill Street opposite the Abbey, with few fish and plenty of music-hall acts, acrobats and 'human cannonballs'. It is thought rather disreputable. The site later becomes Methodist Central Hall."},
- {id:"whitehall",n:"Horse Guards",c:"west",r:2,a:"l",p:[-0.1272,51.5048],y:"1759",t:"Mounted sentries face Whitehall. The Admiralty is to the north and the Treasury to the south. Whitehall and Parliament Street are much narrower than they are today."},
- {id:"downing",n:"Downing Street",c:"west",r:3,a:"l",p:[-0.1276,51.5034],y:"1680s",t:"There are three premierships in 1886: Salisbury, then Gladstone, then Salisbury again. Number 10 is a modest brick terrace house."},
- {id:"yard",n:"Great Scotland Yard",c:"west",r:2,a:"l",p:[-0.1262,51.5063],y:"Police HQ",t:"Metropolitan Police headquarters, off the north end of Whitehall. The police move to New Scotland Yard on the Embankment in 1890."},
- {id:"charingx",n:"Trafalgar Square",c:"west",r:2,a:"l",p:[-0.1281,51.5080],y:"1840s",t:"Nelson's Column (1843) and Landseer's lions (1867), with the National Gallery to the north. On 8 February 1886 the unemployed rioted from here through Pall Mall. Official distances from London are measured from the Charles I statue just to the south."},
- {id:"devilsacre",n:"The Devil's Acre",c:"west",r:2,p:[-0.1335,51.4974],y:"Slum",t:"The rookery of Old Pye Street and Duck Lane, in the shadow of the Abbey. Dickens's journal gave it the name. By 1886 much of it has been replaced by blocks of 'model dwellings', but it is still poor."},
- {id:"millbank",n:"Millbank Penitentiary",c:"west",r:2,p:[-0.1305,51.4905],y:"1821",t:"A vast star-shaped prison on the marshy riverbank, which convicts once passed through on their way to transportation. It closes in 1890, and the Tate Gallery is later built on the site."},
- {id:"tothill",n:"Tothill Fields",c:"west",r:3,p:[-0.1395,51.4963],y:"Prison closed 1885",t:"The old Westminster house of correction has just been demolished. Cardinal Manning bought the site in 1884; Westminster Cathedral is built there from 1895."},
- // Lambeth
- {id:"lambpal",n:"Lambeth Palace",c:"lamb",r:1,p:[-0.1190,51.4957],y:"13th century",t:"The Archbishop of Canterbury's London house, with Morton's red-brick Tudor gatehouse and the Lollards' Tower facing the river."},
- {id:"stmary",n:"St Mary-at-Lambeth",c:"lamb",r:3,a:"l",p:[-0.1205,51.4948],y:"Medieval tower",t:"The parish church by the palace gate. Its churchyard holds the Tradescants and Captain Bligh of the Bounty."},
- {id:"stthomas",n:"St Thomas' Hospital",c:"lamb",r:2,p:[-0.1182,51.4985],y:"1871",t:"Seven pavilion blocks along the new Albert Embankment, facing Parliament. Florence Nightingale's nursing school is here."},
- {id:"astley",n:"Astley's Amphitheatre",c:"lamb",r:2,p:[-0.1163,51.5008],y:"Rebuilt 1843",t:"A horse-circus theatre at the foot of Westminster Bridge, famous for equestrian spectacles and loved by Dickens. It is past its best by 1886 and is demolished in 1893."},
- {id:"canterbury",n:"Canterbury Music Hall",c:"lamb",r:2,a:"l",p:[-0.1150,51.4990],y:"1852",t:"Charles Morton's hall on Westminster Bridge Road, the prototype of the Victorian music hall."},
- {id:"necropolis",n:"Necropolis Station",c:"lamb",r:3,p:[-0.1148,51.5016],y:"1854",t:"The London Necropolis Company's private station beside Waterloo, where coffins and mourners boarded funeral trains to Brookwood Cemetery in Surrey."},
- {id:"shottower",n:"Lambeth Shot Tower",c:"lamb",r:2,p:[-0.1180,51.5052],y:"1826",t:"A tall round brick tower on the riverfront, a landmark from the bridges. Molten lead dropped from the top formed lead shot. It is useful for your skyline."},
- {id:"lion",n:"Lion Brewery",c:"lamb",r:3,a:"l",p:[-0.1195,51.5038],y:"1837",t:"A riverside brewery at the south end of Hungerford Bridge, crowned by a red Coade-stone lion. The lion now stands on Westminster Bridge."},
- {id:"bethlem",n:"Bethlem Hospital",c:"lamb",r:2,p:[-0.1085,51.4958],y:"1815",t:"'Bedlam', the asylum, in its domed building in St George's Fields. The building now houses the Imperial War Museum."},
- {id:"doulton",n:"Doulton's Pottery",c:"lamb",r:2,p:[-0.1212,51.4918],y:"Works rebuilt 1870s",t:"Kilns and a decorated showroom on the Albert Embankment, making stoneware sewer pipes and art pottery. Lambeth's riverfront is full of potteries, and very smoky."},
- {id:"lambwalk",n:"Lambeth Walk",c:"lamb",r:2,p:[-0.1150,51.4933],y:"Street market",t:"A costermongers' market street of barrows, gas flares and cheap shops, in the heart of working-class Lambeth."},
- {id:"workhouse",n:"Lambeth Workhouse",c:"lamb",r:3,p:[-0.1060,51.4933],y:"1873",t:"The parish workhouse off Kennington Road, where the young Charlie Chaplin is admitted a decade later."},
- {id:"vauxgdns",n:"Vauxhall Gardens (site)",c:"lamb",r:3,p:[-0.1225,51.4865],y:"Closed 1859",t:"The famous pleasure gardens closed in 1859 and have been built over with streets. Only the name survives."},
- // New Cut
- {id:"newcut",n:"The New Cut Market",c:"cut",r:1,p:[-0.1068,51.5034],y:"Street laid out c. 1820",t:"A street market running from Waterloo Road to Blackfriars Road, one of the busiest in London. On Saturday nights it is crammed with costermongers' barrows lit by naphtha flares, cheap-jacks, gin palaces, pawnshops and penny gaffs. Mayhew described it."},
- {id:"oldvic",n:"Royal Victoria Hall",c:"cut",r:2,a:"l",p:[-0.1093,51.5022],y:"1818",t:"The old Royal Coburg Theatre, now the Old Vic, at the corner of the Cut and Waterloo Road. Since 1880 Emma Cons has run it as a temperance 'coffee music hall', with cheap concerts and science lectures (the origin of Morley College)."},
- {id:"lowermarsh",n:"Lower Marsh",c:"cut",r:2,a:"l",p:[-0.1120,51.5008],y:"Street market",t:"The western continuation of the Cut behind Waterloo station: another market street, full of stalls. Lambeth Marsh was still open ground in the 1700s."},
- {id:"waterloo",n:"Waterloo Station",c:"cut",r:2,p:[-0.1135,51.5035],y:"1848",t:"The South Western's muddled terminus, raised on brick arches over the old marsh. Its approach viaducts hang over Lower Marsh and the Cut."},
- {id:"surrey",n:"Surrey Theatre",c:"cut",r:3,p:[-0.1052,51.4996],y:"Rebuilt 1865",t:"A melodrama house on Blackfriars Road just north of the obelisk at St George's Circus, at the eastern end of the Cut."},
- // Chinatown
- {id:"limecause",n:"Limehouse Causeway",c:"china",r:1,p:[-0.0290,51.5104],y:"1880s onward",t:"In the 1880s Chinese seamen and the lodging-house keepers, grocers and laundrymen who served them were settling here and in Pennyfields, near the West India Docks. It was still a small community of a few hundred at most. It became London's Chinatown by the 1890s."},
- {id:"pennyfields",n:"Pennyfields",c:"china",r:2,p:[-0.0225,51.5098],y:"1880s onward",t:"The other street of the Limehouse Chinese quarter, with boarding houses, cook-shops and a few gambling and opium rooms."},
- {id:"strangers",n:"Strangers' Home for Asiatics",c:"china",r:2,p:[-0.0262,51.5115],y:"1857",t:"A hostel on West India Dock Road for stranded lascars, Chinese, Malay and African seamen, run by a missionary society."},
- {id:"stanne",n:"St Anne's, Limehouse",c:"china",r:2,a:"l",p:[-0.0322,51.5117],y:"Hawksmoor, 1730",t:"Hawksmoor's white tower, a landmark from the river, next to the Chinese quarter."},
- {id:"bluegate",n:"Bluegate Fields",c:"china",r:1,p:[-0.0560,51.5102],y:"1860s–80s",t:"The older, poorer Chinese and lascar quarter off Ratcliff Highway in Shadwell. Its opium rooms inspired the den in Dickens's Edwin Drood (1870) and Doré's engraving of 1872. By the 1880s the Chinese were moving east to Limehouse."},
- {id:"westindia",n:"West India Docks",c:"china",r:2,p:[-0.0140,51.5073],y:"1802",t:"The docks where China-trade steamers of the Blue Funnel and other lines tie up. Their crews are the reason the Chinese quarter grows next door."},
+const UNDER=[
+  {n:"Inner Circle",closed:true,pts:[[-0.0755,51.5143],[-0.0823,51.5178],[-0.0886,51.5186],[-0.0979,51.5204],[-0.1053,51.5203],[-0.1100,51.5262],[-0.1203,51.5304],[-0.1300,51.5275],[-0.1357,51.5259],[-0.1438,51.5238],[-0.1571,51.5226],[-0.1678,51.5199],[-0.1755,51.5160],[-0.1882,51.5121],[-0.1966,51.5090],[-0.1925,51.5006],[-0.1830,51.4945],[-0.1740,51.4941],[-0.1567,51.4924],[-0.1448,51.4965],[-0.1341,51.4994],[-0.1249,51.5010],[-0.1223,51.5074],[-0.1143,51.5111],[-0.1037,51.5118],[-0.0940,51.5122],[-0.0904,51.5113],[-0.0863,51.5108],[-0.0765,51.5098]]},
+  {n:"Metropolitan (St John's Wood line)",pts:[[-0.1571,51.5226],[-0.1620,51.5270],[-0.1685,51.5315],[-0.1740,51.5370],[-0.1745,51.5433],[-0.1830,51.5500],[-0.1950,51.5580],[-0.2050,51.5650]]},
+  {n:"Hammersmith & City",pts:[[-0.1755,51.5160],[-0.1850,51.5195],[-0.2010,51.5210],[-0.2170,51.5140],[-0.2250,51.5050],[-0.2250,51.4940]]},
+  {n:"District (Hammersmith)",pts:[[-0.1925,51.5006],[-0.1950,51.4920],[-0.2060,51.4905],[-0.2240,51.4925]]},
+  {n:"District (Putney Bridge)",pts:[[-0.1830,51.4945],[-0.1950,51.4920],[-0.1960,51.4870],[-0.1950,51.4800],[-0.2010,51.4750],[-0.2090,51.4680]]},
+  {n:"District (Whitechapel)",pts:[[-0.0765,51.5098],[-0.0720,51.5152],[-0.0660,51.5162],[-0.0600,51.5190]]},
+  {n:"East London Railway",pts:[[-0.0600,51.5190],[-0.0570,51.5110],[-0.0560,51.5046],[-0.0520,51.5010],[-0.0470,51.4940],[-0.0400,51.4850],[-0.0330,51.4770]]},
 ];
-BR.forEach(b=>PL.push({id:b.id,n:b.n,c:"bridge",r:b.r||2,p:b.p,y:b.y,t:b.t,a:b.a}));
+const STATIONS=[["Aldgate",-0.0755,51.5143],["Bishopsgate",-0.0823,51.5178],["Moorgate Street",-0.0886,51.5186],["Aldersgate Street",-0.0979,51.5204],["Farringdon Street",-0.1053,51.5203],["King's Cross",-0.1203,51.5304],["Gower Street",-0.1357,51.5259],["Portland Road",-0.1438,51.5238],["Baker Street",-0.1571,51.5226],["Edgware Road",-0.1678,51.5199],["Praed Street",-0.1755,51.5160],["Bayswater",-0.1882,51.5121],["Notting Hill Gate",-0.1966,51.5090],["High Street Kensington",-0.1925,51.5006],["Gloucester Road",-0.1830,51.4945],["South Kensington",-0.1740,51.4941],["Sloane Square",-0.1567,51.4924],["Victoria",-0.1448,51.4965],["St James's Park",-0.1341,51.4994],["Westminster Bridge",-0.1249,51.5010],["Charing Cross",-0.1223,51.5074],["Temple",-0.1143,51.5111],["Blackfriars",-0.1037,51.5118],["Mansion House",-0.0940,51.5122],["Cannon Street",-0.0904,51.5113],["Monument",-0.0863,51.5108],["Mark Lane",-0.0765,51.5098],["Swiss Cottage",-0.1745,51.5433],["Westbourne Park",-0.2010,51.5210],["Hammersmith",-0.2250,51.4940],["Earl's Court",-0.1950,51.4920],["Putney Bridge",-0.2090,51.4680],["Whitechapel",-0.0600,51.5190],["Wapping",-0.0560,51.5046],["Rotherhithe",-0.0520,51.5010],["New Cross",-0.0330,51.4770]];
+const MARSH=[
+  {n:"Hackney Marshes",l:[-0.0250,51.5560],pts:[[-0.0400,51.5640],[-0.0320,51.5540],[-0.0200,51.5500],[-0.0120,51.5560],[-0.0110,51.5640]]},
+  {n:"Plaistow Levels",l:[0.0300,51.5160],pts:[[0.0240,51.5120],[0.0450,51.5120],[0.0450,51.5260],[0.0300,51.5250],[0.0250,51.5190]]},
+  {n:"Greenwich Marsh",l:[0.0080,51.4990],pts:[[0.0012,51.4900],[0.0014,51.5020],[0.0052,51.5058],[0.0120,51.5000],[0.0140,51.4940],[0.0080,51.4892]]},
+  {n:"",pts:[[-0.0215,51.4945],[-0.0060,51.4945],[-0.0022,51.4905],[-0.0100,51.4882],[-0.0200,51.4895]]},
+];
+const WATERLBL=[["Pool of London",-0.0830,51.5070,0],["Limehouse Reach",-0.0258,51.4985,86],["Greenwich Reach",-0.0120,51.4860,-4],["Blackwall Reach",0.0115,51.5025,-72],["Chelsea Reach",-0.1590,51.4841,4],["Lambeth Reach",-0.1236,51.4930,-84],["Regent's Canal",-0.0700,51.5357,0],["Grand Surrey Canal",-0.0610,51.4815,-22],["River Lea",-0.0120,51.5360,-65]];
+const DISTRICTS=[
+  ["The City",1,-0.0930,51.5165],["Southwark",1,-0.0980,51.5025],["Marylebone",1,-0.1600,51.5185],["St Pancras",1,-0.1330,51.5395],["Islington",1,-0.1030,51.5400],["Hackney",1,-0.0560,51.5490],["Shoreditch",1,-0.0870,51.5290],["Bethnal Green",1,-0.0600,51.5235],["Whitechapel",1,-0.0660,51.5140],["Stepney",1,-0.0470,51.5175],["Poplar",1,-0.0120,51.5150],["Bermondsey",1,-0.0700,51.4950],["Rotherhithe",1,-0.0530,51.4988],["Camberwell",1,-0.0850,51.4790],["Newington",1,-0.1000,51.4900],["Battersea",1,-0.1640,51.4715],["Chelsea",1,-0.1690,51.4880],["Kensington",1,-0.1990,51.5030],["Paddington",1,-0.1870,51.5195],["Fulham",1,-0.2050,51.4780],["Hammersmith",1,-0.2230,51.5000],["Greenwich",1,-0.0120,51.4815],["Deptford",1,-0.0320,51.4790],["Hampstead",1,-0.1760,51.5510],["Holborn",1,-0.1170,51.5195],
+  ["Mayfair",2,-0.1480,51.5105],["Bloomsbury",2,-0.1240,51.5225],["Clerkenwell",2,-0.1050,51.5255],["Belgravia",2,-0.1545,51.4982],["Pimlico",2,-0.1400,51.4905],["Bayswater",2,-0.1860,51.5130],["Notting Hill",2,-0.2040,51.5140],["Camden Town",2,-0.1420,51.5370],["Kentish Town",2,-0.1420,51.5500],["Wapping",2,-0.0610,51.5062],["Limehouse",2,-0.0390,51.5135],["Mile End",2,-0.0360,51.5225],["Bow",2,-0.0220,51.5310],["Isle of Dogs",2,-0.0140,51.4960],["Kennington",2,-0.1160,51.4830],["Walworth",2,-0.0920,51.4860],["Vauxhall",2,-0.1260,51.4830],["Brompton",2,-0.1705,51.4925],["Kilburn",2,-0.1950,51.5400],["St John's Wood",2,-0.1720,51.5335],["Holloway",2,-0.1210,51.5560],["Peckham",2,-0.0660,51.4720],["Brixton",2,-0.1160,51.4640],["Stratford",2,-0.0020,51.5440],["West Ham",2,0.0230,51.5330],["Canning Town",2,0.0180,51.5160],["Stoke Newington",2,-0.0800,51.5590],["Dalston",2,-0.0700,51.5470],["Spitalfields",2,-0.0770,51.5205],["Nine Elms",2,-0.1370,51.4815],["Somers Town",2,-0.1310,51.5325],["Soho",2,-0.1345,51.5140],["Kensal Green",2,-0.2170,51.5320],["Shepherd's Bush",2,-0.2230,51.5085],["Earl's Court",2,-0.1950,51.4935],["Lisson Grove",2,-0.1680,51.5245],["Millwall",2,-0.0200,51.4912],["Cubitt Town",2,-0.0030,51.4960],["Blackwall",2,-0.0020,51.5120],
+];
+const STREETS=[
+  {n:"Oxford Street",r:1,pts:[[-0.2000,51.5093],[-0.1880,51.5116],[-0.1760,51.5120],[-0.1590,51.5131],[-0.1420,51.5153],[-0.1300,51.5163]]},
+  {n:"High Holborn",r:1,pts:[[-0.1300,51.5163],[-0.1200,51.5178],[-0.1100,51.5180],[-0.1060,51.5172],[-0.1000,51.5155],[-0.0935,51.5140],[-0.0890,51.5135]]},
+  {n:"Whitechapel Road",r:1,pts:[[-0.0890,51.5135],[-0.0840,51.5132],[-0.0780,51.5135],[-0.0755,51.5142],[-0.0700,51.5160],[-0.0590,51.5190],[-0.0450,51.5220],[-0.0300,51.5250],[-0.0200,51.5275],[-0.0050,51.5310]]},
+  {n:"Strand",r:1,pts:[[-0.1275,51.5075],[-0.1230,51.5096],[-0.1170,51.5118],[-0.1120,51.5136],[-0.1060,51.5140],[-0.1010,51.5140],[-0.0985,51.5138],[-0.0935,51.5140]]},
+  {n:"Piccadilly",r:1,pts:[[-0.1520,51.5030],[-0.1440,51.5065],[-0.1345,51.5100]]},
+  {n:"Regent Street",r:1,pts:[[-0.1345,51.5100],[-0.1372,51.5116],[-0.1405,51.5150],[-0.1440,51.5188],[-0.1465,51.5230]]},
+  {n:"Whitehall",r:1,pts:[[-0.1275,51.5075],[-0.1265,51.5035],[-0.1270,51.5008]]},
+  {n:"Victoria Street",r:2,pts:[[-0.1270,51.5008],[-0.1340,51.4985],[-0.1432,51.4965]]},
+  {n:"The Mall",r:2,pts:[[-0.1285,51.5064],[-0.1410,51.5026]]},
+  {n:"Park Lane",r:2,pts:[[-0.1590,51.5131],[-0.1525,51.5040]]},
+  {n:"Knightsbridge",r:1,pts:[[-0.1520,51.5028],[-0.1620,51.5020],[-0.1760,51.5016],[-0.1900,51.5010],[-0.2000,51.5004],[-0.2150,51.4962],[-0.2255,51.4930]]},
+  {n:"Cromwell Road",r:2,pts:[[-0.1620,51.5018],[-0.1680,51.4975],[-0.1730,51.4952],[-0.1850,51.4950],[-0.2000,51.4940],[-0.2150,51.4935]]},
+  {n:"King's Road",r:2,pts:[[-0.1570,51.4925],[-0.1650,51.4880],[-0.1760,51.4840],[-0.1870,51.4800],[-0.1950,51.4772]]},
+  {n:"Fulham Road",r:2,pts:[[-0.1680,51.4945],[-0.1800,51.4882],[-0.1950,51.4810],[-0.2080,51.4740]]},
+  {n:"Edgware Road",r:1,pts:[[-0.1590,51.5131],[-0.1680,51.5205],[-0.1760,51.5290],[-0.1850,51.5400],[-0.1950,51.5500],[-0.2040,51.5620]]},
+  {n:"Harrow Road",r:2,pts:[[-0.1720,51.5185],[-0.1900,51.5222],[-0.2050,51.5272],[-0.2250,51.5310],[-0.2420,51.5340]]},
+  {n:"Euston Road",r:1,pts:[[-0.1680,51.5205],[-0.1570,51.5228],[-0.1440,51.5240],[-0.1340,51.5262],[-0.1245,51.5295],[-0.1150,51.5310],[-0.1060,51.5318]]},
+  {n:"City Road",r:1,pts:[[-0.1060,51.5318],[-0.0980,51.5290],[-0.0900,51.5250],[-0.0880,51.5200],[-0.0890,51.5135]]},
+  {n:"Tottenham Court Road",r:2,pts:[[-0.1300,51.5163],[-0.1350,51.5250],[-0.1400,51.5330],[-0.1430,51.5390],[-0.1420,51.5460],[-0.1400,51.5560],[-0.1390,51.5640]]},
+  {n:"Gray's Inn Road",r:2,pts:[[-0.1120,51.5180],[-0.1180,51.5260],[-0.1230,51.5300]]},
+  {n:"Farringdon Road",r:2,pts:[[-0.1045,51.5140],[-0.1060,51.5210],[-0.1100,51.5270],[-0.1210,51.5302]]},
+  {n:"Upper Street",r:2,pts:[[-0.1060,51.5318],[-0.1030,51.5400],[-0.1000,51.5470],[-0.0970,51.5640]]},
+  {n:"Caledonian Road",r:2,pts:[[-0.1200,51.5310],[-0.1180,51.5420],[-0.1170,51.5520],[-0.1160,51.5640]]},
+  {n:"Kingsland Road",r:1,pts:[[-0.0840,51.5135],[-0.0810,51.5180],[-0.0780,51.5240],[-0.0770,51.5320],[-0.0760,51.5450],[-0.0750,51.5640]]},
+  {n:"Hackney Road",r:2,pts:[[-0.0780,51.5260],[-0.0650,51.5300],[-0.0560,51.5340],[-0.0520,51.5420],[-0.0550,51.5520]]},
+  {n:"Bethnal Green Road",r:3,pts:[[-0.0770,51.5250],[-0.0600,51.5270],[-0.0560,51.5280]]},
+  {n:"Commercial Street",r:3,pts:[[-0.0720,51.5155],[-0.0740,51.5210],[-0.0780,51.5245]]},
+  {n:"Commercial Road",r:1,pts:[[-0.0700,51.5152],[-0.0600,51.5135],[-0.0470,51.5125],[-0.0370,51.5120],[-0.0250,51.5115],[-0.0100,51.5110],[0.0030,51.5120],[0.0200,51.5140],[0.0450,51.5150]]},
+  {n:"Ratcliff Highway",r:2,pts:[[-0.0730,51.5105],[-0.0620,51.5100],[-0.0480,51.5096],[-0.0380,51.5100]]},
+  {n:"Borough High Street",r:1,pts:[[-0.0875,51.5062],[-0.0915,51.5010],[-0.0940,51.4980],[-0.0992,51.4958],[-0.1050,51.4900],[-0.1110,51.4830],[-0.1140,51.4720],[-0.1150,51.4560]]},
+  {n:"Old Kent Road",r:1,pts:[[-0.0915,51.5005],[-0.0840,51.4962],[-0.0760,51.4910],[-0.0640,51.4852],[-0.0550,51.4802],[-0.0400,51.4762],[-0.0230,51.4790],[-0.0100,51.4800],[0.0050,51.4800]]},
+  {n:"Walworth Road",r:2,pts:[[-0.0992,51.4958],[-0.0960,51.4880],[-0.0930,51.4740],[-0.0920,51.4560]]},
+  {n:"Westminster Bridge Road",r:2,pts:[[-0.1195,51.5008],[-0.1110,51.4990],[-0.1050,51.4985],[-0.0992,51.4958]]},
+  {n:"Blackfriars Road",r:2,pts:[[-0.1045,51.5082],[-0.1050,51.4985]]},
+  {n:"Waterloo Road",r:2,pts:[[-0.1150,51.5072],[-0.1110,51.5020],[-0.1050,51.4985]]},
+  {n:"Kennington Road",r:3,pts:[[-0.1110,51.4990],[-0.1120,51.4900],[-0.1110,51.4830]]},
+  {n:"Wandsworth Road",r:2,pts:[[-0.1240,51.4860],[-0.1370,51.4790],[-0.1500,51.4720],[-0.1620,51.4640],[-0.1750,51.4560]]},
+  {n:"Vauxhall Bridge Road",r:2,pts:[[-0.1432,51.4965],[-0.1330,51.4900],[-0.1285,51.4884]]},
+  {n:"Victoria Embankment",r:1,pts:[[-0.1242,51.5020],[-0.1226,51.5065],[-0.1182,51.5094],[-0.1100,51.5112],[-0.1045,51.5110]]},
+  {n:"Queen Victoria Street",r:3,pts:[[-0.1045,51.5110],[-0.0960,51.5118],[-0.0890,51.5135]]},
+  {n:"Shaftesbury Avenue",r:2,pts:[[-0.1345,51.5100],[-0.1300,51.5125],[-0.1270,51.5158]]},
+  {n:"Northumberland Avenue",r:3,pts:[[-0.1275,51.5075],[-0.1238,51.5060]]},
+  {n:"Tooley Street",r:2,pts:[[-0.0875,51.5062],[-0.0780,51.5042],[-0.0700,51.5012],[-0.0620,51.4990],[-0.0530,51.4962],[-0.0470,51.4930],[-0.0400,51.4890],[-0.0300,51.4850],[-0.0230,51.4790]]},
+  {n:"Mile End Road",r:3,pts:[[-0.0450,51.5220],[-0.0300,51.5250]]},
+  {n:"The New Cut",r:2,pts:[[-0.1098,51.5020],[-0.1070,51.5030],[-0.1047,51.5036]]},
+  {n:"Lower Marsh",r:2,pts:[[-0.1152,51.4995],[-0.1125,51.5005],[-0.1098,51.5018]]},
+  {n:"Stamford Street",r:2,pts:[[-0.1150,51.5072],[-0.1100,51.5078],[-0.1046,51.5080]]},
+  {n:"York Road",r:3,pts:[[-0.1190,51.5008],[-0.1160,51.5040],[-0.1145,51.5070]]},
+  {n:"Lambeth Road",r:2,pts:[[-0.1226,51.4948],[-0.1150,51.4955],[-0.1090,51.4968],[-0.1050,51.4985]]},
+  {n:"Lambeth Palace Road",r:3,pts:[[-0.1192,51.5003],[-0.1200,51.4975],[-0.1215,51.4950]]},
+  {n:"Albert Embankment",r:2,pts:[[-0.1214,51.4950],[-0.1222,51.4910],[-0.1234,51.4876]]},
+  {n:"Lambeth Walk",r:3,pts:[[-0.1158,51.4952],[-0.1150,51.4930],[-0.1142,51.4908]]},
+  {n:"Millbank",r:2,pts:[[-0.1250,51.4980],[-0.1266,51.4935],[-0.1282,51.4903],[-0.1296,51.4885]]},
+  {n:"Great George Street",r:3,pts:[[-0.1270,51.5008],[-0.1310,51.5015],[-0.1340,51.5020],[-0.1410,51.5010]]},
+  {n:"Limehouse Causeway",r:2,pts:[[-0.0335,51.5098],[-0.0300,51.5103],[-0.0258,51.5100]]},
+  {n:"Pennyfields",r:2,pts:[[-0.0258,51.5100],[-0.0225,51.5098],[-0.0195,51.5096]]},
+  {n:"West India Dock Road",r:2,pts:[[-0.0285,51.5124],[-0.0265,51.5110],[-0.0250,51.5092],[-0.0235,51.5072]]},
+  {n:"Narrow Street",r:3,pts:[[-0.0400,51.5090],[-0.0360,51.5092],[-0.0320,51.5082]]},
+];
+const PL=[
+ {id:"westminster",n:"Palace of Westminster",ar:"west",ty:"gov",r:1,p:[-0.1250,51.4990],y:"1840–70",t:"Barry and Pugin's Gothic Houses of Parliament, with medieval Westminster Hall (1097) kept inside. On 8 June 1886 the Commons defeats Gladstone's Irish Home Rule Bill. The Victoria Tower is at the south end."},
+ {id:"bigben",n:"Clock Tower (Big Ben)",ar:"west",ty:"gov",r:2,p:[-0.1245,51.5007],y:"1859",t:"'Big Ben' is properly the name of the bell. A light at the top of the tower shows when the Commons is sitting after dark."},
+ {id:"abbey",n:"Westminster Abbey",ar:"west",ty:"church",r:1,a:"l",p:[-0.1277,51.4993],y:"1245–1517",t:"With St Margaret's church beside it on the north side. The Queen's Golden Jubilee service is held here the following June."},
+ {id:"aquarium",n:"Royal Aquarium",ar:"west",ty:"stage",r:3,a:"l",p:[-0.1308,51.5006],y:"1876",t:"A huge glass-and-iron pleasure palace on Tothill Street opposite the Abbey, with few fish and plenty of music-hall acts, acrobats and 'human cannonballs'. It is thought rather disreputable. The site later becomes Methodist Central Hall."},
+ {id:"whitehall",n:"Horse Guards",ar:"west",ty:"gov",r:2,a:"l",p:[-0.1272,51.5048],y:"1759",t:"Mounted sentries face Whitehall. The Admiralty is to the north and the Treasury to the south. Whitehall and Parliament Street are much narrower than they are today."},
+ {id:"downing",n:"Downing Street",ar:"west",ty:"gov",r:3,a:"l",p:[-0.1276,51.5034],y:"1680s",t:"There are three premierships in 1886: Salisbury, then Gladstone, then Salisbury again. Number 10 is a modest brick terrace house."},
+ {id:"yard",n:"Great Scotland Yard",ar:"west",ty:"gov",r:2,a:"l",p:[-0.1262,51.5063],y:"Police HQ",t:"Metropolitan Police headquarters, off the north end of Whitehall. The police move to New Scotland Yard on the Embankment in 1890."},
+ {id:"trafalgar",n:"Trafalgar Square",ar:"west",ty:"gov",r:2,a:"l",p:[-0.1281,51.5080],y:"1840s",t:"Nelson's Column (1843) and Landseer's lions (1867), with the National Gallery to the north. On 8 February 1886 the unemployed rioted from here through Pall Mall. Official distances from London are measured from the Charles I statue just to the south."},
+ {id:"devilsacre",n:"The Devil's Acre",ar:"west",ty:"hood",r:2,p:[-0.1335,51.4974],y:"Slum",t:"The rookery of Old Pye Street and Duck Lane, in the shadow of the Abbey. Dickens's journal gave it the name. By 1886 much of it has been replaced by blocks of 'model dwellings', but it is still poor."},
+ {id:"millbank",n:"Millbank Penitentiary",ar:"west",ty:"care",r:2,p:[-0.1305,51.4905],y:"1821",t:"A vast star-shaped prison on the marshy riverbank, which convicts once passed through on their way to transportation. It closes in 1890, and the Tate Gallery is later built on the site."},
+ {id:"tothill",n:"Tothill Fields",ar:"west",ty:"care",r:3,p:[-0.1395,51.4963],y:"Prison closed 1885",t:"The old Westminster house of correction has just been demolished. Cardinal Manning bought the site in 1884; Westminster Cathedral is built there from 1895."},
+ {id:"lambpal",n:"Lambeth Palace",ar:"lamb",ty:"church",r:1,p:[-0.1190,51.4957],y:"13th century",t:"The Archbishop of Canterbury's London house, with Morton's red-brick Tudor gatehouse and the Lollards' Tower facing the river."},
+ {id:"stmary",n:"St Mary-at-Lambeth",ar:"lamb",ty:"church",r:3,a:"l",p:[-0.1205,51.4948],y:"Medieval tower",t:"The parish church by the palace gate. Its churchyard holds the Tradescants and Captain Bligh of the Bounty."},
+ {id:"stthomas",n:"St Thomas' Hospital",ar:"lamb",ty:"care",r:2,p:[-0.1182,51.4985],y:"1871",t:"Seven pavilion blocks along the new Albert Embankment, facing Parliament. Florence Nightingale's nursing school is here."},
+ {id:"astley",n:"Astley's Amphitheatre",ar:"lamb",ty:"stage",r:2,p:[-0.1163,51.5008],y:"Rebuilt 1843",t:"A horse-circus theatre at the foot of Westminster Bridge, famous for equestrian spectacles and loved by Dickens. It is past its best by 1886 and is demolished in 1893."},
+ {id:"canterbury",n:"Canterbury Music Hall",ar:"lamb",ty:"stage",r:2,a:"l",p:[-0.1150,51.4990],y:"1852",t:"Charles Morton's hall on Westminster Bridge Road, the prototype of the Victorian music hall."},
+ {id:"necropolis",n:"Necropolis Station",ar:"lamb",ty:"station",r:3,p:[-0.1148,51.5016],y:"1854",t:"The London Necropolis Company's private station beside Waterloo, where coffins and mourners boarded funeral trains to Brookwood Cemetery in Surrey."},
+ {id:"shottower",n:"Lambeth Shot Tower",ar:"lamb",ty:"industry",r:2,p:[-0.1180,51.5052],y:"1826",t:"A tall round brick tower on the riverfront, a landmark from the bridges. Molten lead dropped from the top formed lead shot. It is useful for your skyline."},
+ {id:"lion",n:"Lion Brewery",ar:"lamb",ty:"industry",r:3,a:"l",p:[-0.1195,51.5038],y:"1837",t:"A riverside brewery at the south end of Hungerford Bridge, crowned by a red Coade-stone lion. The lion now stands on Westminster Bridge."},
+ {id:"bethlem",n:"Bethlem Hospital",ar:"lamb",ty:"care",r:2,p:[-0.1085,51.4958],y:"1815",t:"'Bedlam', the asylum, in its domed building in St George's Fields. The building now houses the Imperial War Museum."},
+ {id:"doulton",n:"Doulton's Pottery",ar:"lamb",ty:"industry",r:2,p:[-0.1212,51.4918],y:"Works rebuilt 1870s",t:"Kilns and a decorated showroom on the Albert Embankment, making stoneware sewer pipes and art pottery. Lambeth's riverfront is full of potteries, and very smoky."},
+ {id:"lambwalk",n:"Lambeth Walk",ar:"lamb",ty:"trade",r:2,p:[-0.1150,51.4933],y:"Street market",t:"A costermongers' market street of barrows, gas flares and cheap shops, in the heart of working-class Lambeth."},
+ {id:"workhouse",n:"Lambeth Workhouse",ar:"lamb",ty:"care",r:3,p:[-0.1060,51.4933],y:"1873",t:"The parish workhouse off Kennington Road, where the young Charlie Chaplin is admitted a decade later."},
+ {id:"vauxgdns",n:"Vauxhall Gardens (site)",ar:"lamb",ty:"stage",r:3,p:[-0.1225,51.4865],y:"Closed 1859",t:"The famous pleasure gardens closed in 1859 and have been built over with streets. Only the name survives."},
+ {id:"newcut",n:"The New Cut Market",ar:"cut",ty:"trade",r:1,p:[-0.1068,51.5034],y:"Street laid out c. 1820",t:"A street market running from Waterloo Road to Blackfriars Road, one of the busiest in London. On Saturday nights it is crammed with costermongers' barrows lit by naphtha flares, cheap-jacks, gin palaces, pawnshops and penny gaffs. Mayhew described it."},
+ {id:"oldvic",n:"Royal Victoria Hall",ar:"cut",ty:"stage",r:2,a:"l",p:[-0.1093,51.5022],y:"1818",t:"The old Royal Coburg Theatre, now the Old Vic, at the corner of the Cut and Waterloo Road. Since 1880 Emma Cons has run it as a temperance 'coffee music hall', with cheap concerts and science lectures (the origin of Morley College)."},
+ {id:"lowermarsh",n:"Lower Marsh",ar:"cut",ty:"trade",r:2,a:"l",p:[-0.1120,51.5008],y:"Street market",t:"The western continuation of the Cut behind Waterloo station: another market street, full of stalls. Lambeth Marsh was still open ground in the 1700s."},
+ {id:"waterloo",n:"Waterloo Station",ar:"cut",ty:"station",r:2,p:[-0.1135,51.5035],y:"1848",t:"The South Western's muddled terminus, raised on brick arches over the old marsh. Its approach viaducts hang over Lower Marsh and the Cut."},
+ {id:"surreythr",n:"Surrey Theatre",ar:"cut",ty:"stage",r:3,p:[-0.1052,51.4996],y:"Rebuilt 1865",t:"A melodrama house on Blackfriars Road just north of the obelisk at St George's Circus, at the eastern end of the Cut."},
+ {id:"limecause",n:"Limehouse Causeway",ar:"china",ty:"hood",r:1,p:[-0.0290,51.5104],y:"1880s onward",t:"In the 1880s Chinese seamen and the lodging-house keepers, grocers and laundrymen who served them were settling here and in Pennyfields, near the West India Docks. It was still a small community of a few hundred at most. It became London's Chinatown by the 1890s."},
+ {id:"pennyfields",n:"Pennyfields",ar:"china",ty:"hood",r:2,p:[-0.0225,51.5098],y:"1880s onward",t:"The other street of the Limehouse Chinese quarter, with boarding houses, cook-shops and a few gambling and opium rooms."},
+ {id:"strangers",n:"Strangers' Home for Asiatics",ar:"china",ty:"care",r:2,p:[-0.0262,51.5115],y:"1857",t:"A hostel on West India Dock Road for stranded lascars, Chinese, Malay and African seamen, run by a missionary society."},
+ {id:"stanne",n:"St Anne's, Limehouse",ar:"china",ty:"church",r:2,a:"l",p:[-0.0322,51.5117],y:"Hawksmoor, 1730",t:"Hawksmoor's white tower, a landmark from the river, next to the Chinese quarter."},
+ {id:"bluegate",n:"Bluegate Fields",ar:"china",ty:"hood",r:1,p:[-0.0560,51.5102],y:"1860s–80s",t:"The older, poorer Chinese and lascar quarter off Ratcliff Highway in Shadwell. Its opium rooms inspired the den in Dickens's Edwin Drood (1870) and Doré's engraving of 1872. By the 1880s the Chinese were moving east to Limehouse."},
+ {id:"westindia",n:"West India Docks",ar:"china",ty:"industry",r:2,p:[-0.0140,51.5073],y:"1802",t:"The docks where China-trade steamers of the Blue Funnel and other lines tie up. Their crews are the reason the Chinese quarter grows next door."},
+ {id:"bakerst",n:"Baker Street Station",ar:"other",ty:"station",r:1,p:[-0.1575,51.5237],y:"March–April 1886",t:"In Southsea, a young doctor named Arthur Conan Doyle writes A Study in Scarlet, lodging his consulting detective at 221B Baker Street. It will appear in Beeton's Christmas Annual the following year. The Metropolitan Railway has served Baker Street since the world's first underground line opened in 1863."},
+ {id:"colonial",n:"Colonial & Indian Exhibition",ar:"other",ty:"learn",r:1,p:[-0.1772,51.4990],y:"4 May 1886",t:"Opened by the Queen on the old Horticultural Society gardens in South Kensington. Courts from every corner of the Empire, an Indian palace and bazaar, and some five and a half million visitors before it closes in November."},
+ {id:"stpaulsstn",n:"St Paul's Station",ar:"other",ty:"station",r:1,p:[-0.1034,51.5116],y:"10 May 1886",t:"The London, Chatham & Dover Railway opens its new City station on the north bank, reached across a new railway bridge beside the old one at Blackfriars. (It will be renamed Blackfriars in 1937.)"},
+ {id:"londonhosp",n:"The London Hospital",ar:"other",ty:"care",r:2,p:[-0.0592,51.5183],y:"June 1886",t:"Joseph Merrick, exhibited as 'the Elephant Man', is brought here after being found stranded at Liverpool Street. The surgeon Frederick Treves arranges rooms for him at the back of the hospital, where he lives until 1890."},
+ {id:"nichol",n:"The Old Nichol",ar:"other",ty:"hood",r:1,p:[-0.0765,51.5262],y:"1886",t:"The shipowner Charles Booth begins his inquiry into the life and labour of the people, starting in the East End. His street-by-street poverty map, coloured from black ('vicious, semi-criminal') to gold ('wealthy'), will mark this tangle of courts off Shoreditch High Street among the blackest in London."},
+ {id:"buckpal",n:"Buckingham Palace",ar:"other",ty:"gov",r:1,a:"l",p:[-0.1419,51.5014],y:"Royal residence since 1837",t:"Victoria was the first sovereign to live here, but since Albert's death she keeps mostly to Windsor, Osborne and Balmoral. Her Golden Jubilee falls next year, in June 1887."},
+ {id:"tower",n:"Tower of London",ar:"other",ty:"gov",r:1,p:[-0.0759,51.5081],y:"From 1078",t:"In January 1885 a Fenian bomb exploded in the White Tower on the same afternoon as two in the Palace of Westminster. The Crown Jewels are on show in the Wakefield Tower."},
+ {id:"bank",n:"Bank of England",ar:"other",ty:"trade",r:1,p:[-0.0886,51.5142],y:"Soane, 1788–1833",t:"Sir John Soane's windowless curtain wall encloses the Old Lady of Threadneedle Street. Sterling is on the gold standard, and the Bank's rate moves the markets of the world."},
+ {id:"courts",n:"Royal Courts of Justice",ar:"other",ty:"gov",r:2,p:[-0.1136,51.5136],y:"Opened 1882",t:"G. E. Street's vast Gothic law courts on the Strand, opened by the Queen in December 1882. Street died before it was finished, worn out, it was said, by the work."},
+ {id:"somerset",n:"Somerset House",ar:"other",ty:"gov",r:3,a:"l",p:[-0.1172,51.5108],y:"Chambers, 1776–96",t:"Government offices: the Inland Revenue and the General Register Office, where every birth, marriage and death in England is recorded. The Victoria Embankment now runs along its old river frontage."},
+ {id:"mansion",n:"Mansion House",ar:"other",ty:"gov",r:3,a:"l",p:[-0.0910,51.5131],y:"1752",t:"Official home of the Lord Mayor, with its own justice room and cells in the basement."},
+ {id:"newgate",n:"Newgate Prison",ar:"other",ty:"care",r:2,p:[-0.1020,51.5157],y:"1782",t:"Beside the Old Bailey court. Public hangings outside its walls ended in 1868; executions now take place inside the prison, announced to the crowd by a black flag."},
+ {id:"stpauls",n:"St Paul's Cathedral",ar:"other",ty:"church",r:1,p:[-0.0984,51.5138],y:"Wren, 1675–1710",t:"Wren's dome still rules the City skyline, dwarfing everything around it but the smoke. The Ludgate Hill railway viaduct cuts across the view from Fleet Street, to much complaint."},
+ {id:"saviour",n:"St Saviour's, Southwark",ar:"other",ty:"church",r:3,p:[-0.0896,51.5061],y:"13th century",t:"A parish church in 1886, hemmed in by the railway viaducts into London Bridge. It will not become Southwark Cathedral until 1905."},
+ {id:"oratory",n:"Brompton Oratory",ar:"other",ty:"church",r:2,p:[-0.1695,51.4970],y:"Consecrated 1884",t:"The great Italianate church of Cardinal Newman's Oratorians, newly opened. Its dome is not yet built."},
+ {id:"christch",n:"Christ Church, Spitalfields",ar:"other",ty:"church",r:3,a:"l",p:[-0.0731,51.5190],y:"Hawksmoor, 1729",t:"Hawksmoor's white spire over the old Huguenot silk-weaving district, now crowded with Jewish families who have fled the Russian pogroms since 1881."},
+ {id:"bevis",n:"Bevis Marks Synagogue",ar:"other",ty:"church",r:3,p:[-0.0785,51.5146],y:"1701",t:"The oldest synagogue in Britain, founded by Sephardi Jews from Spain and Portugal."},
+ {id:"tabernacle",n:"Metropolitan Tabernacle",ar:"other",ty:"church",r:2,p:[-0.1005,51.4945],y:"1861",t:"Charles Spurgeon, 'the Prince of Preachers', fills its 5,000 seats twice every Sunday at the Elephant and Castle."},
+ {id:"exchange",n:"Royal Exchange",ar:"other",ty:"trade",r:2,p:[-0.0875,51.5137],y:"Tite, 1844",t:"The third Exchange on the site. Lloyd's of London underwrites the world's shipping from rooms upstairs."},
+ {id:"covent",n:"Covent Garden Market",ar:"other",ty:"trade",r:2,p:[-0.1228,51.5118],y:"Market hall 1830",t:"The Duke of Bedford's fruit, flower and vegetable market. Carts jam the streets from before dawn, and porters carry towers of baskets on their heads."},
+ {id:"smithfield",n:"Smithfield Meat Market",ar:"other",ty:"trade",r:2,p:[-0.1015,51.5190],y:"Jones, 1868",t:"The live cattle market that Dickens deplored was moved to Islington in 1855. Horace Jones's meat market stands over a railway depot, so carcasses arrive by underground train."},
+ {id:"billingsgate",n:"Billingsgate Fish Market",ar:"other",ty:"trade",r:3,p:[-0.0845,51.5090],y:"Jones, 1875",t:"The fish market on the river below London Bridge, as famous for its porters' language as for its catch."},
+ {id:"leadenhall",n:"Leadenhall Market",ar:"other",ty:"trade",r:3,p:[-0.0835,51.5126],y:"Jones, 1881",t:"Horace Jones's new glass-and-iron arcade for poultry, game and meat, on the site of the Roman forum."},
+ {id:"piccadilly",n:"Piccadilly Circus",ar:"other",ty:"trade",r:2,a:"l",p:[-0.1347,51.5100],y:"1819",t:"Nash's circus is being remodelled to meet the new Shaftesbury Avenue. No illuminated advertising yet: gas lamps, cabs and omnibuses."},
+ {id:"euston",n:"Euston",ar:"other",ty:"station",r:2,a:"l",p:[-0.1335,51.5282],y:"1837",t:"London's first main-line terminus, entered through Hardwick's Doric arch. It is the London & North Western's gateway to Birmingham, Liverpool and Scotland."},
+ {id:"kingsx",n:"King's Cross",ar:"other",ty:"station",r:2,p:[-0.1234,51.5308],y:"1852",t:"Lewis Cubitt's plain twin-arched front for the Great Northern Railway, whose trains run to York and Edinburgh."},
+ {id:"stpancras",n:"St Pancras",ar:"other",ty:"station",r:2,a:"l",p:[-0.1265,51.5320],y:"1868",t:"Barlow's train shed was the widest single span in the world. Scott's Midland Grand Hotel stands in front of it in full Gothic splendour."},
+ {id:"paddington",n:"Paddington",ar:"other",ty:"station",r:2,p:[-0.1759,51.5154],y:"Brunel, 1854",t:"Brunel's Great Western terminus. Broad-gauge trains still run to the West Country, until the gauge is finally abandoned in 1892."},
+ {id:"liverpoolst",n:"Liverpool Street",ar:"other",ty:"station",r:2,p:[-0.0823,51.5178],y:"1874–75",t:"The Great Eastern's new terminus. Its cheap workmen's trains carry thousands out to the new suburbs of Walthamstow and Leyton."},
+ {id:"victoria",n:"Victoria",ar:"other",ty:"station",r:2,p:[-0.1439,51.4952],y:"1860–62",t:"Two stations side by side: one for the Brighton line, one for the Chatham & Dover, run by rival companies."},
+ {id:"charingx",n:"Charing Cross",ar:"other",ty:"station",r:2,p:[-0.1247,51.5082],y:"1864",t:"The South Eastern's West End terminus, with a replica Eleanor Cross in its forecourt. Distances from London are measured from the statue of Charles I just outside."},
+ {id:"cannon",n:"Cannon Street",ar:"other",ty:"station",r:3,p:[-0.0906,51.5113],y:"1866",t:"The South Eastern's City terminus, with twin towers on the river front and its own bridge across the Thames."},
+ {id:"londonbr",n:"London Bridge Station",ar:"other",ty:"station",r:3,p:[-0.0860,51.5048],y:"1836",t:"London's oldest terminus, reached by the long brick viaduct of the London & Greenwich Railway."},
+ {id:"fenchurch",n:"Fenchurch Street",ar:"other",ty:"station",r:3,p:[-0.0786,51.5117],y:"1841",t:"Terminus of the London & Blackwall and the Tilbury line, serving the docks and the river steamers."},
+ {id:"needle",n:"Cleopatra's Needle",ar:"other",ty:"learn",r:3,p:[-0.1203,51.5086],y:"Erected 1878",t:"The Egyptian obelisk stands on Bazalgette's Victoria Embankment, which hides the low-level sewer and the District Railway. The Embankment was one of the first streets in the world lit by electricity, in an 1878 trial."},
+ {id:"museum",n:"British Museum",ar:"other",ty:"learn",r:1,p:[-0.1269,51.5194],y:"Smirke, 1823–52",t:"Sydney Smirke's domed Reading Room opened in 1857. Karl Marx worked there for thirty years, until his death in 1883. Admission is free."},
+ {id:"natgal",n:"National Gallery",ar:"other",ty:"learn",r:3,a:"l",p:[-0.1283,51.5090],y:"1838",t:"Wilkins's gallery on the north side of Trafalgar Square, facing Nelson's Column (1843) and Landseer's lions (1867)."},
+ {id:"skm",n:"South Kensington Museum",ar:"other",ty:"learn",r:2,a:"l",p:[-0.1722,51.4966],y:"1857",t:"Albert's museum of art and manufactures, later the Victoria and Albert. It was one of the first museums to open in the evenings, by gaslight."},
+ {id:"nhm",n:"Natural History Museum",ar:"other",ty:"learn",r:3,p:[-0.1764,51.4960],y:"Waterhouse, 1881",t:"Waterhouse's terracotta 'cathedral of nature', faced with modelled animals, opened five years ago to house the British Museum's specimens."},
+ {id:"alberthall",n:"Royal Albert Hall",ar:"other",ty:"stage",r:2,p:[-0.1774,51.5010],y:"1871",t:"The great oval hall of arts and sciences, notorious for its echo."},
+ {id:"savoy",n:"Savoy Theatre",ar:"other",ty:"stage",r:3,p:[-0.1204,51.5104],y:"1881",t:"D'Oyly Carte's theatre, the first public building in the world lit entirely by electricity. The Mikado has been playing here since March 1885."},
+ {id:"lyceum",n:"Lyceum Theatre",ar:"other",ty:"stage",r:3,p:[-0.1195,51.5116],y:"1834",t:"Henry Irving and Ellen Terry are playing Goethe's Faust, with spectacular stage effects. Bram Stoker is Irving's business manager."},
+ {id:"drury",n:"Theatre Royal, Drury Lane",ar:"other",ty:"stage",r:3,p:[-0.1203,51.5129],y:"1812",t:"Augustus Harris puts on huge melodramas and the Christmas pantomime."},
+ {id:"opera",n:"Royal Italian Opera",ar:"other",ty:"stage",r:3,a:"l",p:[-0.1222,51.5130],y:"1858",t:"E. M. Barry's opera house beside Covent Garden market. It will not be called the Royal Opera House until 1892."},
+ {id:"tussaud",n:"Madame Tussaud's",ar:"other",ty:"learn",r:3,a:"l",p:[-0.1553,51.5230],y:"Moved here 1884",t:"The waxworks moved from Baker Street to its new building on the Marylebone Road two years ago. Its Chamber of Horrors costs sixpence extra."},
+ {id:"zoo",n:"Zoological Gardens",ar:"other",ty:"learn",r:2,p:[-0.1534,51.5353],y:"1828",t:"The Zoological Society's gardens in Regent's Park. Jumbo the elephant was sold to Barnum in 1882, to a storm of public protest."},
+ {id:"observatory",n:"Royal Observatory",ar:"other",ty:"learn",r:1,p:[-0.0015,51.4769],y:"1675",t:"In October 1884 an international conference in Washington chose the meridian through Airy's transit circle here as longitude 0°. The dashed line on this plan follows it."},
+ {id:"guys",n:"Guy's Hospital",ar:"other",ty:"care",r:3,p:[-0.0878,51.5033],y:"1721",t:"Founded by the bookseller Thomas Guy with a fortune made in South Sea stock."},
+ {id:"toynbee",n:"Toynbee Hall",ar:"other",ty:"care",r:3,p:[-0.0712,51.5170],y:"1884",t:"The first university settlement, where Oxford and Cambridge graduates live among the poor of Whitechapel under Canon Samuel Barnett."},
+ {id:"stkat",n:"St Katharine Docks",ar:"other",ty:"industry",r:3,p:[-0.0720,51.5086],y:"Telford, 1828",t:"Telford's enclosed docks beside the Tower, handling wool, ivory, shells, spices and wine."},
+ {id:"londondocks",n:"London Docks",ar:"other",ty:"industry",r:2,p:[-0.0620,51.5086],y:"1805",t:"Walled docks at Wapping, with cellars holding millions of gallons of wine and brandy. Casual labourers queue for work at the gates every morning."},
+ {id:"millwall",n:"Millwall Dock",ar:"other",ty:"industry",r:3,p:[-0.0110,51.4990],y:"1868",t:"An L-shaped dock for the grain and timber trades."},
+ {id:"surrey",n:"Surrey Commercial Docks",ar:"other",ty:"industry",r:2,a:"l",p:[-0.0460,51.5015],y:"Amalgamated 1864",t:"A maze of basins and ponds at Rotherhithe for Baltic and Canadian timber, grain and deals."},
+ {id:"royalvic",n:"Royal Victoria Dock",ar:"other",ty:"industry",r:2,p:[0.0200,51.5092],y:"1855",t:"Built for steamships, with a railway along its quays and hydraulic cranes. Its neighbour, the Royal Albert, opened in 1880 and was lit by electricity."},
+ {id:"eastindia",n:"East India Docks",ar:"other",ty:"industry",r:3,a:"l",p:[-0.0005,51.5108],y:"1806",t:"Built for the East India Company's ships at Blackwall, where tea clippers once raced home from China."},
+ {id:"truman",n:"Truman's Black Eagle Brewery",ar:"other",ty:"industry",r:3,a:"l",p:[-0.0716,51.5210],y:"1666",t:"One of the largest breweries in the world, on Brick Lane. The smell of malt hangs over Spitalfields."},
+ {id:"bryant",n:"Bryant & May Match Factory",ar:"other",ty:"industry",r:3,p:[-0.0235,51.5285],y:"Bow, 1861",t:"Its matchgirls suffer 'phossy jaw' from white phosphorus. Their strike in 1888 will become famous."},
+ {id:"navalcol",n:"Royal Naval College",ar:"other",ty:"gov",r:3,p:[-0.0055,51.4832],y:"Wren, 1696–1712",t:"Wren's Greenwich Hospital for seamen, a naval college since 1873."},
+ {id:"sevendials",n:"Seven Dials",ar:"other",ty:"hood",r:2,p:[-0.1265,51.5140],y:"Rookery",t:"Seven streets meet at a junction (its sundial pillar was pulled down in 1773) in the old St Giles rookery. It is full of second-hand clothes shops, bird-fanciers, ballad printers and crowded lodging houses. New Oxford Street (1847) and now Shaftesbury Avenue (1886) have cut through the worst of it."},
+ {id:"flowerdean",n:"Flower and Dean Street",ar:"other",ty:"hood",r:3,p:[-0.0724,51.5180],y:"Rookery",t:"Common lodging houses at fourpence a night off Commercial Street, Spitalfields: reckoned among the most dangerous streets in London. Clearance for model dwellings begins in the later 1880s."},
+ {id:"stgiles",n:"St Giles-in-the-Fields",ar:"other",ty:"church",r:3,p:[-0.1283,51.5155],y:"1734",t:"Flitcroft's church gives its name to the most notorious Georgian rookery, much of it now cleared by New Oxford Street and Shaftesbury Avenue."},
+ {id:"pier0",n:"Chelsea Pier",ar:"other",ty:"pier",r:3,p:[-0.1690,51.4838],y:"Steamboat pier",t:"A calling point for the penny steamers that run every few minutes between Chelsea and London Bridge, and on down to Greenwich and Woolwich. Many Londoners still use the river as a street. Pier positions are approximate."},
+ {id:"pier1",n:"Battersea Park Pier",ar:"other",ty:"pier",r:3,p:[-0.1540,51.4840],y:"Steamboat pier",t:"A calling point for the penny steamers that run every few minutes between Chelsea and London Bridge, and on down to Greenwich and Woolwich. Many Londoners still use the river as a street. Pier positions are approximate."},
+ {id:"pier2",n:"Pimlico Pier",ar:"other",ty:"pier",r:3,p:[-0.1360,51.4870],y:"Steamboat pier",t:"A calling point for the penny steamers that run every few minutes between Chelsea and London Bridge, and on down to Greenwich and Woolwich. Many Londoners still use the river as a street. Pier positions are approximate."},
+ {id:"pier3",n:"Vauxhall Pier",ar:"other",ty:"pier",r:3,p:[-0.1262,51.4883],y:"Steamboat pier",t:"A calling point for the penny steamers that run every few minutes between Chelsea and London Bridge, and on down to Greenwich and Woolwich. Many Londoners still use the river as a street. Pier positions are approximate."},
+ {id:"pier4",n:"Lambeth Pier",ar:"other",ty:"pier",r:3,p:[-0.1218,51.4958],y:"Steamboat pier",t:"A calling point for the penny steamers that run every few minutes between Chelsea and London Bridge, and on down to Greenwich and Woolwich. Many Londoners still use the river as a street. Pier positions are approximate."},
+ {id:"pier5",n:"Westminster Pier",ar:"other",ty:"pier",r:3,p:[-0.1234,51.5018],y:"Steamboat pier",t:"A calling point for the penny steamers that run every few minutes between Chelsea and London Bridge, and on down to Greenwich and Woolwich. Many Londoners still use the river as a street. Pier positions are approximate."},
+ {id:"pier6",n:"Charing Cross Pier",ar:"other",ty:"pier",r:3,p:[-0.1220,51.5072],y:"Steamboat pier",t:"A calling point for the penny steamers that run every few minutes between Chelsea and London Bridge, and on down to Greenwich and Woolwich. Many Londoners still use the river as a street. Pier positions are approximate."},
+ {id:"pier7",n:"Temple Pier",ar:"other",ty:"pier",r:3,p:[-0.1125,51.5107],y:"Steamboat pier",t:"A calling point for the penny steamers that run every few minutes between Chelsea and London Bridge, and on down to Greenwich and Woolwich. Many Londoners still use the river as a street. Pier positions are approximate."},
+ {id:"pier8",n:"Blackfriars Pier",ar:"other",ty:"pier",r:3,p:[-0.1062,51.5103],y:"Steamboat pier",t:"A calling point for the penny steamers that run every few minutes between Chelsea and London Bridge, and on down to Greenwich and Woolwich. Many Londoners still use the river as a street. Pier positions are approximate."},
+ {id:"pier9",n:"Old Swan Pier (London Bridge)",ar:"other",ty:"pier",r:3,p:[-0.0898,51.5092],y:"Steamboat pier",t:"A calling point for the penny steamers that run every few minutes between Chelsea and London Bridge, and on down to Greenwich and Woolwich. Many Londoners still use the river as a street. Pier positions are approximate."},
+ {id:"pier10",n:"Cherry Garden Pier",ar:"other",ty:"pier",r:3,p:[-0.0625,51.5020],y:"Steamboat pier",t:"A calling point for the penny steamers that run every few minutes between Chelsea and London Bridge, and on down to Greenwich and Woolwich. Many Londoners still use the river as a street. Pier positions are approximate."},
+ {id:"pier11",n:"Greenwich Pier",ar:"other",ty:"pier",r:3,p:[-0.0095,51.4843],y:"Steamboat pier",t:"A calling point for the penny steamers that run every few minutes between Chelsea and London Bridge, and on down to Greenwich and Woolwich. Many Londoners still use the river as a street. Pier positions are approximate."},
+];
+// Principal horse-tram routes, 1886 (approximate). Trams were barred from the City and the West End,
+// so the lines stop at the bridges and at Aldgate.
+const TRAMS=[
+  [[-0.1195,51.5008],[-0.1110,51.4990],[-0.1120,51.4900],[-0.1110,51.4830],[-0.1140,51.4720],[-0.1150,51.4580]],
+  [[-0.1045,51.5082],[-0.1050,51.4985],[-0.0992,51.4958],[-0.0960,51.4880],[-0.0930,51.4740],[-0.0920,51.4580]],
+  [[-0.0915,51.5005],[-0.0940,51.4980],[-0.0992,51.4958]],
+  [[-0.1240,51.4860],[-0.1370,51.4790],[-0.1500,51.4720],[-0.1620,51.4640]],
+  [[-0.0840,51.4962],[-0.0760,51.4910],[-0.0640,51.4852],[-0.0550,51.4802],[-0.0400,51.4762],[-0.0230,51.4790],[-0.0100,51.4800]],
+  [[-0.0720,51.5152],[-0.0590,51.5190],[-0.0450,51.5220],[-0.0300,51.5250],[-0.0200,51.5275],[-0.0050,51.5310]],
+  [[-0.0700,51.5152],[-0.0600,51.5135],[-0.0470,51.5125],[-0.0370,51.5120],[-0.0250,51.5115],[-0.0100,51.5110]],
+  [[-0.0780,51.5260],[-0.0770,51.5320],[-0.0760,51.5450],[-0.0750,51.5620]],
+];
+
+const AREA_NAMES={lamb:"Lambeth",cut:"The New Cut",west:"Westminster",china:"Chinatown",bridge:"Bridges & crossings",other:"Rest of London"};
+const TYPES={
+  gov:"Government & Crown", church:"Churches", stage:"Theatres & music halls", trade:"Markets & trade",
+  care:"Hospitals, prisons & workhouses", learn:"Museums & monuments", industry:"Industry & docks", hood:"Rookeries & quarters",
+  station:"Railway stations", bridge:"Bridges & crossings", pier:"Steamboat piers",
+};
+BR.forEach(b=>PL.push({id:b.id,n:b.n,ar:"bridge",ty:"bridge",r:b.r||2,p:b.p,y:b.y,t:b.t,k:b.k}));
 const byId=Object.fromEntries(PL.map(p=>[p.id,p]));
+
+/* ================= layers (the toggles) ================= */
+const LAYERS=[
+  {h:"Labels"},
+  {id:"districts",l:"District names",on:true},
+  {id:"streets",l:"Street names",on:true},
+  {id:"nature",l:"Parks & water names",on:true},
+  {h:"Places"},
+  ...["gov","church","stage","trade","care","learn","industry","hood"].map(t=>({id:"t-"+t,l:TYPES[t],on:true,dot:"--t-"+t})),
+  {h:"Transport"},
+  {id:"t-bridge",l:"Bridges & crossings",on:true,dot:"--t-bridge"},
+  {id:"rail",l:"Main-line railways",on:true,line:"rail"},
+  {id:"t-station",l:"Railway stations",on:true,dot:"--t-station"},
+  {id:"under",l:"Underground railways",on:false,line:"under"},
+  {id:"tram",l:"Horse trams (approx.)",on:false,line:"tram"},
+  {id:"t-pier",l:"Steamboat piers",on:false,dot:"--t-pier"},
+  {h:"Overlays"},
+  {id:"focus",l:"Focus areas",on:true,line:"area"},
+];
+const layerOn={};LAYERS.forEach(L=>{if(L.id)layerOn[L.id]=L.on;});
 
 /* ================= svg helpers ================= */
 const NS="http://www.w3.org/2000/svg";
@@ -364,18 +523,16 @@ function smooth(ll){
   return d;
 }
 const poly=ll=>"M"+ll.map(P).map(q=>f(q[0])+" "+f(q[1])).join("L")+"Z";
-const scaled=[]; // groups kept at constant screen size
-function cs(g,x,y){g.dataset.x=x;g.dataset.y=y;scaled.push(g);return g;}
-const color=c=>`var(--${c})`;
 
-/* ================= draw ================= */
+/* ================= base map ================= */
 const clip=el("clipPath",{id:"clip"},el("defs",{},svg));el("rect",{width:W,height:H},clip);
 const base=el("g",{"clip-path":"url(#clip)"},world);
 el("rect",{width:W,height:H,class:"land"},base);
+MARSH.forEach(m=>el("path",{d:poly(m.pts),class:"marsh"},base));
 PARKS.forEach(p=>el("path",{d:poly(p.pts),class:"park"},base));
-// area outlines sit under the water so they stop at the river bank
-const gArea=el("g",{class:"L-areas"},base);
-AREAS.forEach(a=>el("path",{d:poly(a.pts),class:"area",style:`fill:${color(a.c)};stroke:${color(a.c)}`},gArea));
+const layerGroups={}; // id -> [elements] toggled by display
+const lg=(id,parent)=>{const g=el("g",{},parent);(layerGroups[id]=layerGroups[id]||[]).push(g);return g;};
+{const g=lg("focus",base);AREAS.forEach(a=>el("path",{d:poly(a.pts),class:"area"},g));} // under the water: stops at the bank
 const water=(d,w)=>{el("path",{d,class:"w-edge","stroke-width":w+2},base);el("path",{d,class:"w-fill","stroke-width":w},base);};
 CANALS.forEach(c=>water(smooth(c.pts),c.w));
 LAKES.forEach(c=>water(smooth(c.pts),c.w));
@@ -383,15 +540,12 @@ const thamesD=smooth(THAMES);water(thamesD,24);
 el("path",{d:thamesD,id:"thames",fill:"none"},world);
 DOCKS.forEach(([a,b,c,d])=>{const [x0,y1]=P([a,b]),[x1,y0]=P([c,d]);el("rect",{x:f(x0),y:f(y0),width:f(x1-x0),height:f(y1-y0),class:"dock"},base);});
 
-
-const gRail=el("g",{class:"L-rail"},base);
-RAIL.forEach(r=>el("path",{d:smooth(r.pts),class:"rail","vector-effect":"non-scaling-stroke"},gRail));
-
-const gSt=el("g",{class:"L-streets"},base);
-STREETS.forEach((s,i)=>{s.d=smooth(s.pts);el("path",{d:s.d,class:"road-e","stroke-width":s.r===1?5:4},gSt);});
-STREETS.forEach((s,i)=>el("path",{d:s.d,id:"st"+i,class:"road","stroke-width":s.r===1?3.4:2.5},gSt));
-
-// bridges: a bar across the river at each crossing
+const gSt=el("g",{},base);
+STREETS.forEach(s=>{s.d=smooth(s.pts);el("path",{d:s.d,class:"road-e","stroke-width":s.r===1?5:s.r===2?4:3.4},gSt);});
+STREETS.forEach((s,i)=>{s.path=el("path",{d:s.d,id:"st"+i,class:"road","stroke-width":s.r===1?3.4:s.r===2?2.5:2},gSt);});
+{const g=lg("tram",base);TRAMS.forEach(t=>el("path",{d:smooth(t),class:"tram","vector-effect":"non-scaling-stroke"},g));}
+{const g=lg("rail",base);RAIL.forEach(r=>el("path",{d:smooth(r.pts),class:"rail","vector-effect":"non-scaling-stroke"},g));}
+{const g=lg("under",base);UNDER.forEach(r=>{const pts=r.closed?[...r.pts,r.pts[0]]:r.pts;el("path",{d:smooth(pts),class:"under","vector-effect":"non-scaling-stroke"},g);});}
 BR.forEach(b=>{
   if(b.k==="under")return;
   const [x,y]=P(b.p);let best=0,bd=1e9;
@@ -399,50 +553,136 @@ BR.forEach(b=>{
   const a=P(THAMES[Math.max(0,best-1)]),c=P(THAMES[Math.min(THAMES.length-1,best+1)]);
   let dx=c[0]-a[0],dy=c[1]-a[1];const L=Math.hypot(dx,dy);dx/=L;dy/=L;
   const d=`M${f(x+dy*15)} ${f(y-dx*15)}L${f(x-dy*15)} ${f(y+dx*15)}`;
-  el("path",{d,class:"bridge-bar","stroke-width":3.2,style:"stroke:var(--ink)"},base);
-  el("path",{d,class:"bridge-bar","stroke-width":1.6,style:b.k==="rail"?"stroke:var(--rail)":b.k==="works"?"stroke:var(--china);stroke-dasharray:2 1.5":"stroke:var(--road)"},base);
+  el("path",{d,class:"bar","stroke-width":3.2,style:"stroke:var(--ink)"},base);
+  el("path",{d,class:"bar","stroke-width":1.6,style:b.k==="rail"?"stroke:var(--rail)":b.k==="works"?"stroke:var(--t-hood);stroke-dasharray:2 1.5":"stroke:var(--road)"},base);
 });
 el("rect",{width:W,height:H,class:"edge","vector-effect":"non-scaling-stroke"},world);
 
-// labels
-const gL=el("g",{},world);
-const streetText=STREETS.map((s,i)=>{const t=el("text",{class:"lbl lbl-street L-streets"},gL);const tp=el("textPath",{href:"#st"+i,startOffset:"50%","text-anchor":"middle"},t);tp.textContent=s.n;return t;});
-const riverText=["20%","55%","88%"].map(o=>{const t=el("text",{class:"lbl lbl-river"},gL);const tp=el("textPath",{href:"#thames",startOffset:o,"text-anchor":"middle"},t);tp.textContent="River Thames";return t;});
-PARKS.forEach(p=>{if(!p.n)return;const [x,y]=P(p.l);const g=cs(el("g",{class:"z-2"},gL),x,y);el("text",{"text-anchor":"middle",dy:4,class:"lbl lbl-park"},g).textContent=p.n;});
-AREAS.forEach(a=>{const [x,y]=P(a.l);const g=cs(el("g",{class:"L-areas"},gL),x,y);el("text",{"text-anchor":"middle",dy:4,class:"lbl lbl-area",style:`fill:${color(a.c)}`},g).textContent=a.n.toUpperCase();});
+/* ================= labels & markers =================
+   Every label is an item with a layer, the zoom it appears at (minK), a priority,
+   and a measured size. place() lays them out highest priority first and hides any
+   that would overlap something already placed. */
+const gL=el("g",{},world), gM=el("g",{},world);
+const meas=document.createElement("canvas").getContext("2d");
+const FONTS={focus:["800 14px",14,.18,true],d1:["700 13px",13,.18,true],d2:["600 11px",11,.12,true],park:["italic 12px",12,0],water:["italic 12px",12,0],
+  street:["10.5px",10.5,0],place:["600 12.5px",12.5,0],small:["italic 11px",11,0],bridge:["italic 600 12px",12,0]};
+function measure(it){const [fnt,px,ls,up]=FONTS[it.font];meas.font=`${fnt} "Source Sans 3", system-ui, sans-serif`;
+  const s=up?it.text.toUpperCase():it.text;it.w=meas.measureText(s).width+ls*px*s.length;it.h=px;}
+const items=[];
+function textEl(parent,font,text){const up=FONTS[font][3];const t=el("text",{class:"lbl f-"+font},parent);t.textContent=up?text.toUpperCase():text;return t;}
 
-// places and numbered bridges
-const gPl=el("g",{},world);const plEl={};
-let bn=0;
+// centred labels: focus areas, districts, parks, water
+function centred(layer,font,text,lonlat,minK,prio,rot){
+  const [x,y]=P(lonlat);const g=el("g",{},gL);const t=textEl(g,font,text);
+  t.setAttribute("text-anchor","middle");t.setAttribute("dy",(FONTS[font][1]*0.35).toFixed(1));if(rot)t.setAttribute("transform",`rotate(${rot})`);
+  items.push({kind:"c",layer,font,text,x,y,g,t,minK,prio,rot:rot||0});
+}
+AREAS.forEach(a=>centred("focus","focus",a.n,a.l,a.c==="lamb"||a.c==="west"?T0:T1,1000));
+DISTRICTS.forEach(([n,r,lo,la])=>centred("districts",r===1?"d1":"d2",n,[lo,la],r===1?T0:T2,r===1?900:500));
+PARKS.forEach(p=>{if(p.n)centred("nature","park",p.n,p.l,/Hyde|Regent|Victoria Park|Battersea|Kensington G|Greenwich/.test(p.n)?T1:T2,450);});
+MARSH.forEach(m=>{if(m.n)centred("nature","park",m.n,m.l,T2,300);});
+WATERLBL.forEach(([n,lo,la,rot])=>centred("nature","water",n,[lo,la],T2,260,rot));
+
+// streets: text along the road itself
+STREETS.forEach((s,i)=>{
+  const t=el("text",{class:"lbl f-street"},gL);const tp=el("textPath",{href:"#st"+i,startOffset:"50%","text-anchor":"middle"},t);tp.textContent=s.n;
+  const L=s.path.getTotalLength(),m=s.path.getPointAtLength(L/2),a=s.path.getPointAtLength(Math.max(0,L/2-8)),b=s.path.getPointAtLength(Math.min(L,L/2+8));
+  items.push({kind:"s",layer:"streets",font:"street",text:s.n,t,x:m.x,y:m.y,L,ang:Math.atan2(b.y-a.y,b.x-a.x),minK:s.r===1?T2*0.95:s.r===2?T2*1.35:T3,prio:s.r===1?420:s.r===2?320:180});
+});
+// river name (on the water, never collides with land labels)
+const riverText=["20%","55%","88%"].map(o=>{const t=el("text",{class:"lbl f-river"},gL);const tp=el("textPath",{href:"#thames",startOffset:o,"text-anchor":"middle"},t);tp.textContent="River Thames";return t;});
+
+// places: a marker plus a label that may sit on any of four sides
+const plEl={};let bn=0;
+const PRIO={1:800,2:600,3:350};
 PL.forEach(p=>{
-  const [x,y]=P(p.p);const isB=p.c==="bridge";
+  const [x,y]=P(p.p);const isB=p.ty==="bridge",small=p.ty==="pier";
   if(isB)p.no=++bn;
-  const g=cs(el("g",{class:"pl"+(!isB&&p.r>1?" z-"+p.r:""),"data-id":p.id},gPl),x,y);
-  el("circle",{r:14,class:"hit"},g);
-  el("circle",{r:isB?12:10,class:"ring",style:`stroke:${color(p.c)}`},g);
+  const g=el("g",{class:"pl","data-id":p.id},gM);
+  el("circle",{r:13,class:"hit"},g);
+  el("circle",{r:isB?12:9,class:"ring"},g);
   if(isB){el("circle",{r:8,class:"num"},g);el("text",{y:3.5,class:"numt"},g).textContent=p.no;}
-  else el("circle",{r:5,class:"dotm",style:`fill:${color(p.c)}`},g);
-  const left=p.a==="l",off=isB?11:8;
-  el("text",{x:left?-off:off,y:4.5,"text-anchor":left?"end":"start",class:"lbl "+(isB?"lbl-bridge z-3":"lbl-place")},g).textContent=p.n;
+  else if(p.ty==="station"){el("circle",{r:5,style:"fill:var(--land);stroke:var(--t-station);stroke-width:2.2"},g);}
+  else el("circle",{r:small?3.5:5,class:"dot",style:`fill:var(--t-${p.ty})`},g);
+  const t=textEl(g,isB?"bridge":small?"small":"place",p.n);
+  const minK=isB?T1:p.r===1?T1:p.r===2?T2:T3;
+  items.push({kind:"p",layer:"t-"+p.ty,font:isB?"bridge":small?"small":"place",text:p.n,x,y,g,t,p,
+    minK,labelK:isB?T3*0.9:minK,prio:(PRIO[p.r]||350)+(p.ar==="lamb"?60:p.ar!=="other"&&p.ar!=="bridge"?30:0),mr:isB?9:small?4:6});
   plEl[p.id]=g;
 });
+// underground stations: small markers, labels only when close in
+const gU=lg("under",gM);
+STATIONS.forEach(([n,lo,la])=>{const [x,y]=P([lo,la]);const g=el("g",{},gU);
+  el("circle",{r:3,style:"fill:var(--land);stroke:var(--under);stroke-width:1.6"},g);
+  const t=textEl(g,"small",n);items.push({kind:"p",layer:"under",font:"small",text:n,x,y,g,t,minK:T2,labelK:T3,prio:200,mr:4});});
+
+items.forEach(measure);
+items.sort((a,b)=>b.prio-a.prio);
+
+/* ================= placement ================= */
+let placedK=-1;
+const hit=(b,list)=>{for(const o of list)if(b[0]<o[2]&&b[2]>o[0]&&b[1]<o[3]&&b[3]>o[1])return true;return false;};
+function place(){
+  placedK=k;
+  const boxes=[];const pad=3;
+  // 1. markers first, so no label is ever drawn across a dot
+  for(const it of items){
+    if(it.kind!=="p")continue;
+    const vis=layerOn[it.layer]&&k>=it.minK;
+    it.mOn=vis;
+    if(!vis){it.g.style.display="none";continue;}
+    const X=it.x*k,Y=it.y*k,r=it.mr;
+    const b=[X-r,Y-r,X+r,Y+r];
+    if(it.p&&it.p.ty==="bridge"&&hit(b,boxes)&&!(selected===it.p.id)){it.mOn=false;it.g.style.display="none";continue;}
+    it.g.style.display="";boxes.push(b);
+  }
+  // 2. labels by priority
+  for(const it of items){
+    let show=false;
+    if(it.kind==="p"){
+      if(it.mOn&&k>=it.labelK){
+        const X=it.x*k,Y=it.y*k,o=it.mr+3,w=it.w,h=it.h;
+        const cands=[["start",o,h*.35,[X+o,Y-h*.65,X+o+w,Y+h*.4]],["end",-o,h*.35,[X-o-w,Y-h*.65,X-o,Y+h*.4]],
+          ["middle",0,-o-2,[X-w/2,Y-o-2-h,X+w/2,Y-o]],["middle",0,o+h*.85,[X-w/2,Y+o,X+w/2,Y+o+h+1]]];
+        for(const [anc,dx,dy,b] of cands){const bb=[b[0]-pad,b[1]-pad,b[2]+pad,b[3]+pad];
+          if(!hit(bb,boxes)){boxes.push(bb);it.t.setAttribute("text-anchor",anc);it.t.setAttribute("x",dx);it.t.setAttribute("y",dy.toFixed(1));show=true;break;}}
+      }
+    }else if(it.kind==="c"){
+      if(layerOn[it.layer]&&k>=it.minK){
+        const X=it.x*k,Y=it.y*k,rad=it.rot*Math.PI/180,c=Math.abs(Math.cos(rad)),s=Math.abs(Math.sin(rad));
+        const hw=(c*it.w+s*it.h)/2+pad,hh=(s*it.w+c*it.h)/2+pad,b=[X-hw,Y-hh,X+hw,Y+hh];
+        if(!hit(b,boxes)){boxes.push(b);show=true;}
+      }
+      it.g.style.display=show?"":"none";continue;
+    }else if(it.kind==="s"){
+      if(layerOn.streets&&k>=it.minK&&it.L*k>it.w+30){
+        const X=it.x*k,Y=it.y*k,c=Math.abs(Math.cos(it.ang)),s=Math.abs(Math.sin(it.ang));
+        const hw=(c*it.w+s*it.h)/2+pad,hh=(s*it.w+c*it.h)/2+pad,b=[X-hw,Y-hh,X+hw,Y+hh];
+        if(!hit(b,boxes)){boxes.push(b);show=true;}
+      }
+    }
+    it.t.style.display=show?"":"none";
+  }
+}
 
 /* ================= view ================= */
 const wrap=document.getElementById("mapwrap");
-let vw=0,vh=0,k=1,tx=0,ty=0,lastK=-1,raf=0;
+let vw=0,vh=0,k=1,tx=0,ty=0,lastK=-1,raf=0,selected=null;
 const fitK=()=>Math.min(vw/(W+30),vh/(H+30));
-const clampK=v=>Math.min(14,Math.max(fitK()*0.9,v));
+const clampK=v=>Math.min(14,Math.max(Math.min(fitK()*0.9,0.5),v));
 function schedule(){if(!raf)raf=requestAnimationFrame(apply);}
+const hint=document.getElementById("zoomhint");
 function apply(){
   raf=0;
   world.setAttribute("transform",`translate(${f(tx)} ${f(ty)}) scale(${k.toFixed(4)})`);
   if(k===lastK)return;
   const inv=(1/k).toFixed(4);
-  for(const g of scaled)g.setAttribute("transform",`translate(${g.dataset.x} ${g.dataset.y}) scale(${inv})`);
-  for(const t of streetText){t.style.fontSize=(10.5/k)+"px";t.style.strokeWidth=(3/k)+"px";t.setAttribute("dy",(3.5/k).toFixed(2));}
+  for(const it of items)if(it.g)it.g.setAttribute("transform",`translate(${f(it.x)} ${f(it.y)}) scale(${inv})`);
+  for(const it of items)if(it.kind==="s"){it.t.style.fontSize=(10.5/k)+"px";it.t.style.strokeWidth=(3/k)+"px";it.t.setAttribute("dy",(3.5/k).toFixed(2));}
   for(const t of riverText){t.style.fontSize=(16/k)+"px";t.setAttribute("dy",(5.5/k).toFixed(2));}
-  svg.classList.toggle("z2",k>=1.6);svg.classList.toggle("z3",k>=3.2);
-  lastK=k;updateScale();
+  lastK=k;place();updateScale();
+  const tier=k>=T3?3:k>=T2?2:k>=T1?1:0;
+  hint.innerHTML=`Showing <b>${TIER_NAMES[tier]}</b>${tier<3?" · zoom in for more":""}`;
 }
 function center(x,y,kk){k=clampK(kk);tx=vw/2-x*k;ty=vh/2-y*k;schedule();}
 function zoomAt(sx,sy,factor){const nk=clampK(k*factor);const wx=(sx-tx)/k,wy=(sy-ty)/k;k=nk;tx=sx-wx*k;ty=sy-wy*k;schedule();}
@@ -457,8 +697,7 @@ function flyTo(x,y,k1){
     tx=vw/2-cx*k;ty=vh/2-cy*k;schedule();if(u<1)flyRaf=requestAnimationFrame(step);};
   flyRaf=requestAnimationFrame(step);
 }
-function flyBox([a,b,c,d]){const [x0,y1]=P([a,b]),[x1,y0]=P([c,d]);flyTo((x0+x1)/2,(y0+y1)/2,Math.min(vw/((x1-x0)*1.08),vh/((y1-y0)*1.08)));}
-function flyPt(lonlat,kk){const [x,y]=P(lonlat);flyTo(x,y,kk);}
+function boxView([a,b,c,d]){const [x0,y1]=P([a,b]),[x1,y0]=P([c,d]);return [(x0+x1)/2,(y0+y1)/2,Math.min(vw/((x1-x0)*1.08),vh/((y1-y0)*1.08))];}
 function updateScale(){
   const px=U_PER_MILE*k,opts=[[0.125,"1 furlong",1],[0.25,"¼ mile",2],[0.5,"½ mile",4],[1,"1 mile",4],[2,"2 miles",4]];
   const pick=opts.find(o=>o[0]*px>=60)||opts[opts.length-1];
@@ -520,60 +759,69 @@ function hover(e){
   tip.textContent=(p.no?p.no+". ":"")+p.n;tip.style.left=sx+"px";tip.style.top=sy+"px";tip.hidden=false;
 }
 wrap.addEventListener("pointerleave",()=>{tip.hidden=true;});
+
+/* ================= layers panel ================= */
 const lyrBtn=document.getElementById("lyr"),lyrBox=document.getElementById("layers");
 lyrBtn.onclick=()=>{lyrBox.hidden=!lyrBox.hidden;lyrBtn.setAttribute("aria-pressed",String(!lyrBox.hidden));};
-[["L-areas","no-areas"],["L-streets","no-streets"],["L-rail","no-rail"]].forEach(([id,cls])=>{
-  const cb=document.getElementById(id),sync=()=>svg.classList.toggle(cls,!cb.checked);cb.addEventListener("change",sync);sync();});
+const KEYLINE={rail:"stroke:var(--rail);stroke-width:2;stroke-dasharray:7 3",under:"stroke:var(--under);stroke-width:2.2;stroke-dasharray:2 3",tram:"stroke:var(--tram);stroke-width:2.4",area:"stroke:var(--focus);stroke-width:1.6;stroke-dasharray:5 3"};
+lyrBox.innerHTML=LAYERS.map(L=>L.h?`<h3>${L.h}</h3>`:`<label><input type="checkbox" id="L-${L.id}" ${L.on?"checked":""}><span class="key">${
+  L.dot?`<i style="background:var(${L.dot})"></i>`:L.line?`<svg width="22" height="10"><path d="M0 5h22" style="${KEYLINE[L.line]};fill:none"/></svg>`:""}</span>${L.l}</label>`).join("");
+function syncLayers(){for(const id in layerGroups)layerGroups[id].forEach(g=>g.style.display=layerOn[id]?"":"none");riverText.forEach(t=>t.style.display=layerOn.nature?"":"none");place();}
+LAYERS.forEach(L=>{if(!L.id)return;const cb=document.getElementById("L-"+L.id);cb.addEventListener("change",()=>{layerOn[L.id]=cb.checked;syncLayers();});});
 
-/* ================= panel ================= */
+/* ================= side panel ================= */
 const detail=document.getElementById("detail"),list=document.getElementById("list"),q=document.getElementById("q");
-let selected=null,activeCat=null;
+let activeAr=null;
 const esc=s=>s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-const VIEWS={west:AREAS[0].box,lamb:AREAS[1].box,cut:AREAS[2].box,china:AREAS[3].box,bridge:[-0.2320,51.4640,-0.0500,51.5110]};
-const swatch=c=>`<span class="sw" style="background:${color(c)}"></span>`;
+const VIEWS={lamb:AREAS[1].box,cut:AREAS[2].box,west:AREAS[0].box,china:AREAS[3].box,bridge:[-0.2320,51.4640,-0.0500,51.5110],other:[LON0,LAT0,LON1,LAT1]};
+const ORDER=["lamb","cut","west","china","bridge","other"];
+const sw=ty=>`<span class="sw" style="background:var(--t-${ty})"></span>`;
 function renderIntro(){
-  detail.innerHTML=`<h2>Five areas to draw</h2>
-  <p>Westminster, Lambeth, the New Cut, the Chinese quarter, and every Thames crossing, numbered from west to east. Drag to move, scroll or pinch to zoom, and tap any dot or number for a note.</p>
-  <div class="areabtns">${Object.entries(CATS).map(([c,v])=>`<button class="pbtn" data-go="${c}" aria-pressed="${activeCat===c}">${swatch(c)}${esc(v.l)}</button>`).join("")}</div>`;
+  detail.innerHTML=`<h2>London in 1886</h2>
+  <p>Zoomed right out you see only district names. Zoom in for landmarks, then streets, then everything else. Labels that would overlap are hidden until there's room. Drag to move, and tap any marker for a note. Use the layers button to choose what's shown.</p>
+  <div class="areabtns">${ORDER.map(a=>`<button class="pbtn" data-go="${a}" aria-pressed="${activeAr===a}">${esc(AREA_NAMES[a])}</button>`).join("")}</div>`;
   detail.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>{
-    const c=b.dataset.go;activeCat=activeCat===c?null:c;
-    if(activeCat)flyBox(VIEWS[c]);renderIntro();renderList();dimMap();});
+    const a=b.dataset.go;activeAr=activeAr===a?null:a;
+    if(activeAr){const [x,y,kk]=boxView(VIEWS[a]);flyTo(x,y,kk);}
+    renderIntro();renderList();dimMap();});
 }
 function renderDetail(p){
-  detail.innerHTML=`<div class="cat">${swatch(p.c)}${esc(CATS[p.c].l)}${p.no?" · no. "+p.no:""}</div>
-  <h2>${esc(p.n)}</h2><div class="meta">${esc(p.y)}</div><p>${esc(p.t)}</p>
+  detail.innerHTML=`<div class="cat">${sw(p.ty)}${esc(TYPES[p.ty])}${p.no?" · no. "+p.no:""}</div>
+  <h2>${esc(p.n)}</h2><div class="meta">${esc(p.y)}${p.ar!=="other"&&p.ar!=="bridge"?" · "+esc(AREA_NAMES[p.ar]):""}</div><p>${esc(p.t)}</p>
   <button class="pbtn back" id="back">&larr; All areas</button>`;
   detail.querySelector("#back").onclick=()=>{deselect();renderIntro();};
 }
-function deselect(){if(selected)plEl[selected].classList.remove("sel");selected=null;markList();}
+function deselect(){if(selected)plEl[selected].classList.remove("sel");selected=null;markList();place();}
 function select(id,fromMap){
-  const p=byId[id];if(selected)plEl[selected].classList.remove("sel");
+  const p=byId[id],it=items.find(i=>i.p===p);
+  if(!layerOn["t-"+p.ty]){layerOn["t-"+p.ty]=true;document.getElementById("L-t-"+p.ty).checked=true;syncLayers();}
+  if(selected)plEl[selected].classList.remove("sel");
   selected=id;plEl[id].classList.add("sel");
-  const need=p.c==="bridge"?3.4:p.r===3?3.4:p.r===2?1.8:0;
-  if(!fromMap)flyPt(p.p,Math.max(k,need,2));else if(k<need)flyPt(p.p,need);
-  renderDetail(p);markList();detail.scrollTop=0;
+  const need=it.labelK*1.05;const [x,y]=P(p.p);
+  if(!fromMap)flyTo(x,y,Math.max(k,need));else if(k<need)flyTo(x,y,need);else place();
+  renderDetail(p);markList();detail.scrollTop=0;detail.closest(".panel").scrollTop=0;
 }
-function matches(p){const s=q.value.trim().toLowerCase();return (!activeCat||activeCat===p.c)&&(!s||p.n.toLowerCase().includes(s)||p.t.toLowerCase().includes(s));}
+function matches(p){const s=q.value.trim().toLowerCase();return (!activeAr||activeAr===p.ar)&&(!s||p.n.toLowerCase().includes(s)||p.t.toLowerCase().includes(s));}
 function renderList(){
   let html="";
-  for(const c of Object.keys(CATS)){
-    const items=PL.filter(p=>p.c===c&&matches(p));if(!items.length)continue;
-    if(c!=="bridge")items.sort((a,b)=>a.n.localeCompare(b.n));
-    html+=`<li class="grp">${swatch(c)}${esc(CATS[c].l)}${c==="bridge"?" <em>west to east</em>":""}</li>`+
-      items.map(p=>`<li><button data-id="${p.id}"><span class="no">${p.no||""}</span><span>${esc(p.n)}</span><span class="yr">${esc((p.y.match(/\d{4}/)||[""])[0])}</span></button></li>`).join("");
+  for(const a of ORDER){
+    const it=PL.filter(p=>p.ar===a&&matches(p));if(!it.length)continue;
+    if(a!=="bridge")it.sort((x,y)=>x.n.localeCompare(y.n));
+    html+=`<li class="grp">${esc(AREA_NAMES[a])}${a==="bridge"?" <em>west to east</em>":""}</li>`+
+      it.map(p=>`<li><button data-id="${p.id}"><span class="no">${p.no||sw(p.ty)}</span><span>${esc(p.n)}</span><span class="yr">${esc((p.y.match(/\d{4}/)||[""])[0])}</span></button></li>`).join("");
   }
   list.innerHTML=html||`<li class="empty">Nothing matches. Try another word.</li>`;markList();
 }
 function markList(){list.querySelectorAll("button[data-id]").forEach(b=>b.setAttribute("aria-current",String(b.dataset.id===selected)));}
-function dimMap(){PL.forEach(p=>plEl[p.id].classList.toggle("dim",!matches(p)));svg.classList.toggle("filtered",!!activeCat||q.value.trim()!=="");}
+function dimMap(){PL.forEach(p=>plEl[p.id].classList.toggle("dim",!matches(p)));}
 list.addEventListener("click",e=>{const b=e.target.closest("button[data-id]");if(b)select(b.dataset.id,false);});
 q.addEventListener("input",()=>{renderList();dimMap();});
 
 /* ================= boot ================= */
-renderIntro();renderList();
+renderIntro();renderList();syncLayers();
 new ResizeObserver(()=>{const r=wrap.getBoundingClientRect();vw=r.width;vh=r.height;schedule();}).observe(wrap);
-{const r=wrap.getBoundingClientRect();vw=r.width;vh=r.height;
- const [x0,y1]=P([-0.1420,51.4870]),[x1,y0]=P([-0.0180,51.5140]);
- center((x0+x1)/2,(y0+y1)/2,Math.min(vw/((x1-x0)*1.04),vh/((y1-y0)*1.04)));}
+{const r=wrap.getBoundingClientRect();vw=r.width;vh=r.height;const [x,y,kk]=boxView([-0.1480,51.4840,-0.0860,51.5110]);center(x,y,kk);}
+// re-measure once the web fonts arrive, so label boxes match what's drawn
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{items.forEach(measure);place();});
 })();
 </script>
