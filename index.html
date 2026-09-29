@@ -105,6 +105,9 @@ text{pointer-events:none}
 .key i{display:block;width:10px;height:10px;border-radius:50%}
 .zoomhint{position:absolute;left:50%;transform:translateX(-50%);bottom:14px;background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:3px 10px;font-size:13px;color:var(--ink-soft);pointer-events:none;white-space:nowrap}
 .zoomhint b{color:var(--ink);font-weight:600}
+.attrib{position:absolute;right:66px;bottom:14px;max-width:min(360px,calc(100% - 200px));background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:3px 8px;font-size:11px;line-height:1.3;color:var(--ink-soft);pointer-events:none}
+.layers .osop{display:grid;gap:4px;margin:6px 0 0 31px;font-size:13px;color:var(--ink-soft)}
+.layers .osop input{width:100%;height:auto}
 .scale{position:absolute;left:14px;bottom:14px;background:var(--panel);border:1.5px solid var(--ink);border-radius:4px;padding:5px 10px 4px;pointer-events:none;font-size:12px}
 .scale .bar{height:6px;display:flex;border:1px solid var(--ink)}
 .scale .bar i{flex:1;background:var(--ink)} .scale .bar i:nth-child(even){background:var(--panel)}
@@ -145,6 +148,7 @@ text{pointer-events:none}
   .title h1{font-size:24px}
   .title div{font-size:12px}
   .zoomhint{display:none}
+  .attrib{max-width:calc(100% - 180px)}
 }
 </style>
 
@@ -160,6 +164,7 @@ text{pointer-events:none}
     </div>
     <div class="layers" id="layers" hidden></div>
     <div class="zoomhint" id="zoomhint"></div>
+    <div class="attrib" id="attrib" hidden>Base map: Ordnance Survey London, five feet to the mile, 1893–96. Reproduced from the National Library of Scotland (CC BY)</div>
     <div class="scale"><div class="bar" id="scalebar"></div><div class="t"><span>0</span><span id="scalelbl">1 mile</span></div></div>
     <svg class="compass" viewBox="-22 -22 44 44" aria-hidden="true"><path d="M0-18 6 6 0 2-6 6Z" style="fill:var(--ink)"/><text y="19" text-anchor="middle" style="font:700 11px 'Source Sans 3',sans-serif;fill:var(--ink)">N</text></svg>
     <div class="tip" id="tip" hidden></div>
@@ -377,7 +382,7 @@ const PL=[
  {id:"necropolis",n:"Necropolis Station",ar:"lamb",ty:"station",r:3,p:[-0.1148,51.5016],y:"1854",t:"The London Necropolis Company's private station beside Waterloo, where coffins and mourners boarded funeral trains to Brookwood Cemetery in Surrey."},
  {id:"shottower",n:"Lambeth Shot Tower",ar:"lamb",ty:"industry",r:2,p:[-0.1180,51.5052],y:"1826",t:"A tall round brick tower on the riverfront, a landmark from the bridges. Molten lead dropped from the top formed lead shot. It is useful for your skyline."},
  {id:"lion",n:"Lion Brewery",ar:"lamb",ty:"industry",r:3,a:"l",p:[-0.1195,51.5038],y:"1837",t:"A riverside brewery at the south end of Hungerford Bridge, crowned by a red Coade-stone lion. The lion now stands on Westminster Bridge."},
- {id:"bethlem",n:"Bethlem Hospital",ar:"lamb",ty:"care",r:2,p:[-0.1085,51.4958],y:"1815",t:"'Bedlam', the asylum, in its domed building in St George's Fields. The building now houses the Imperial War Museum."},
+ {id:"bethlem",n:"Bethlem Hospital (Bedlam)",ar:"lamb",ty:"care",r:2,p:[-0.1085,51.4958],y:"1815",t:"Bethlem Royal Hospital, 'Bedlam', London's ancient asylum for the insane, in its domed building on Lambeth Road in St George's Fields (here since 1815). Its criminal patients were moved to Broadmoor in the 1860s. The hospital left for Beckenham in 1930, and the building now houses the Imperial War Museum."},
  {id:"doulton",n:"Doulton's Pottery",ar:"lamb",ty:"industry",r:2,p:[-0.1212,51.4918],y:"Works rebuilt 1870s",t:"Kilns and a decorated showroom on the Albert Embankment, making stoneware sewer pipes and art pottery. Lambeth's riverfront is full of potteries, and very smoky."},
  {id:"lambwalk",n:"Lambeth Walk",ar:"lamb",ty:"trade",r:2,p:[-0.1150,51.4933],y:"Street market",t:"A costermongers' market street of barrows, gas flares and cheap shops, in the heart of working-class Lambeth."},
  {id:"workhouse",n:"Lambeth Workhouse",ar:"lamb",ty:"care",r:3,p:[-0.1060,51.4933],y:"1873",t:"The parish workhouse off Kennington Road, where the young Charlie Chaplin is admitted a decade later."},
@@ -480,6 +485,9 @@ const TRAMS=[
   [[-0.0780,51.5260],[-0.0770,51.5320],[-0.0760,51.5450],[-0.0750,51.5620]],
 ];
 
+// 1890s Ordnance Survey London (five feet to the mile, surveyed 1893-96), stitched from the
+// National Library of Scotland's tiles: [file, tile zoom, west lon, north lat, east lon, south lat]
+const OS_IMAGES=[["os14", 14, -0.241699, 51.563412, 0.043945, 51.454007], ["os15_0", 15, -0.241699, 51.563412, -0.153809, 51.522416], ["os15_1", 15, -0.241699, 51.522416, -0.153809, 51.481383], ["os15_2", 15, -0.241699, 51.481383, -0.153809, 51.454007], ["os15_3", 15, -0.153809, 51.563412, -0.065918, 51.522416], ["os15_4", 15, -0.153809, 51.522416, -0.065918, 51.481383], ["os15_5", 15, -0.153809, 51.481383, -0.065918, 51.454007], ["os15_6", 15, -0.065918, 51.563412, 0.021973, 51.522416], ["os15_7", 15, -0.065918, 51.522416, 0.021973, 51.481383], ["os15_8", 15, -0.065918, 51.481383, 0.021973, 51.454007], ["os15_9", 15, 0.021973, 51.563412, 0.043945, 51.522416], ["os15_10", 15, 0.021973, 51.522416, 0.043945, 51.481383], ["os15_11", 15, 0.021973, 51.481383, 0.043945, 51.454007], ["os16_0", 16, -0.137329, 51.512161, -0.093384, 51.491645], ["os16_1", 16, -0.137329, 51.491645, -0.093384, 51.481383]];
 const AREA_NAMES={lamb:"Lambeth",cut:"The New Cut",west:"Westminster",china:"Chinatown",bridge:"Bridges & crossings",other:"Rest of London"};
 const TYPES={
   gov:"Government & Crown", church:"Churches", stage:"Theatres & music halls", trade:"Markets & trade",
@@ -506,6 +514,7 @@ const LAYERS=[
   {id:"t-pier",l:"Steamboat piers",on:false,dot:"--t-pier"},
   {h:"Overlays"},
   {id:"focus",l:"Focus areas",on:true,line:"area"},
+  {id:"os",l:"1890s Ordnance Survey map",on:false,line:"os"},
 ];
 const layerOn={};LAYERS.forEach(L=>{if(L.id)layerOn[L.id]=L.on;});
 
@@ -556,6 +565,11 @@ BR.forEach(b=>{
   el("path",{d,class:"bar","stroke-width":3.2,style:"stroke:var(--ink)"},base);
   el("path",{d,class:"bar","stroke-width":1.6,style:b.k==="rail"?"stroke:var(--rail)":b.k==="works"?"stroke:var(--t-hood);stroke-dasharray:2 1.5":"stroke:var(--road)"},base);
 });
+// the 1890s survey sits above the drawn map but under every label and marker
+const gOS=lg("os",world);gOS.style.opacity=.85;
+const osImgs=OS_IMAGES.map(([file,z,w,n,e,so])=>{const [x0,y0]=P([w,n]),[x1,y1]=P([e,so]);
+  const im=el("image",{x:f(x0),y:f(y0),width:f(x1-x0),height:f(y1-y0),preserveAspectRatio:"none"},gOS);
+  return {im,z,file,box:[x0,y0,x1,y1],loaded:false};});
 el("rect",{width:W,height:H,class:"edge","vector-effect":"non-scaling-stroke"},world);
 
 /* ================= labels & markers =================
@@ -619,6 +633,18 @@ STATIONS.forEach(([n,lo,la])=>{const [x,y]=P([lo,la]);const g=el("g",{},gU);
 items.forEach(measure);
 items.sort((a,b)=>b.prio-a.prio);
 
+/* ================= 1890s survey: load the sharper images only where and when needed ================= */
+function updateOS(){
+  if(!layerOn.os)return;
+  const v=[-tx/k,-ty/k,(vw-tx)/k,(vh-ty)/k];
+  for(const o of osImgs){
+    const need=o.z===14||(o.z===15&&k>=1.6)||(o.z===16&&k>=3.2);
+    const inView=o.box[0]<v[2]&&o.box[2]>v[0]&&o.box[1]<v[3]&&o.box[3]>v[1];
+    o.im.style.display=need?"":"none";
+    if(need&&inView&&!o.loaded){o.im.setAttribute("href","os1890s/"+o.file+".jpg");o.loaded=true;}
+  }
+}
+
 /* ================= placement ================= */
 let placedK=-1;
 const hit=(b,list)=>{for(const o of list)if(b[0]<o[2]&&b[2]>o[0]&&b[1]<o[3]&&b[3]>o[1])return true;return false;};
@@ -671,10 +697,11 @@ let vw=0,vh=0,k=1,tx=0,ty=0,lastK=-1,raf=0,selected=null;
 const fitK=()=>Math.min(vw/(W+30),vh/(H+30));
 const clampK=v=>Math.min(14,Math.max(Math.min(fitK()*0.9,0.5),v));
 function schedule(){if(!raf)raf=requestAnimationFrame(apply);}
-const hint=document.getElementById("zoomhint");
+const hint=document.getElementById("zoomhint"),attrib=document.getElementById("attrib");
 function apply(){
   raf=0;
   world.setAttribute("transform",`translate(${f(tx)} ${f(ty)}) scale(${k.toFixed(4)})`);
+  updateOS();
   if(k===lastK)return;
   const inv=(1/k).toFixed(4);
   for(const it of items)if(it.g)it.g.setAttribute("transform",`translate(${f(it.x)} ${f(it.y)}) scale(${inv})`);
@@ -763,10 +790,12 @@ wrap.addEventListener("pointerleave",()=>{tip.hidden=true;});
 /* ================= layers panel ================= */
 const lyrBtn=document.getElementById("lyr"),lyrBox=document.getElementById("layers");
 lyrBtn.onclick=()=>{lyrBox.hidden=!lyrBox.hidden;lyrBtn.setAttribute("aria-pressed",String(!lyrBox.hidden));};
-const KEYLINE={rail:"stroke:var(--rail);stroke-width:2;stroke-dasharray:7 3",under:"stroke:var(--under);stroke-width:2.2;stroke-dasharray:2 3",tram:"stroke:var(--tram);stroke-width:2.4",area:"stroke:var(--focus);stroke-width:1.6;stroke-dasharray:5 3"};
+const KEYLINE={rail:"stroke:var(--rail);stroke-width:2;stroke-dasharray:7 3",under:"stroke:var(--under);stroke-width:2.2;stroke-dasharray:2 3",tram:"stroke:var(--tram);stroke-width:2.4",area:"stroke:var(--focus);stroke-width:1.6;stroke-dasharray:5 3",os:"stroke:#B9A98A;stroke-width:8"};
 lyrBox.innerHTML=LAYERS.map(L=>L.h?`<h3>${L.h}</h3>`:`<label><input type="checkbox" id="L-${L.id}" ${L.on?"checked":""}><span class="key">${
   L.dot?`<i style="background:var(${L.dot})"></i>`:L.line?`<svg width="22" height="10"><path d="M0 5h22" style="${KEYLINE[L.line]};fill:none"/></svg>`:""}</span>${L.l}</label>`).join("");
-function syncLayers(){for(const id in layerGroups)layerGroups[id].forEach(g=>g.style.display=layerOn[id]?"":"none");riverText.forEach(t=>t.style.display=layerOn.nature?"":"none");place();}
+lyrBox.insertAdjacentHTML("beforeend",`<label class="osop" for="osop">Old map strength<input type="range" id="osop" min="20" max="100" value="85"></label>`);
+const osOp=document.getElementById("osop");osOp.addEventListener("input",()=>{gOS.style.opacity=osOp.value/100;});
+function syncLayers(){for(const id in layerGroups)layerGroups[id].forEach(g=>g.style.display=layerOn[id]?"":"none");riverText.forEach(t=>t.style.display=layerOn.nature?"":"none");osOp.parentNode.hidden=!layerOn.os;attrib.hidden=!layerOn.os;updateOS();place();}
 LAYERS.forEach(L=>{if(!L.id)return;const cb=document.getElementById("L-"+L.id);cb.addEventListener("change",()=>{layerOn[L.id]=cb.checked;syncLayers();});});
 
 /* ================= side panel ================= */

@@ -10,7 +10,9 @@ Open `index.html` in a browser. There's no build step; the only external request
   - Labels: district names, street names, parks and water.
   - Places, by type: government, churches, theatres and music halls, markets, hospitals/prisons/workhouses, museums and monuments, industry and docks, rookeries and quarters.
   - Transport: bridges (numbered west to east), main-line railways, stations, the Metropolitan and District underground, horse-tram routes (approximate) and steamboat piers.
-  - Overlays: focus-area outlines.
+  - Overlays: focus-area outlines, and the **1890s Ordnance Survey map** as a background, with a strength slider. It's sharpest over Lambeth.
 - Drag to move. Scroll, pinch or use + / − to zoom. Tap any marker for a note.
 
 Positions come from hand-plotted latitude/longitude. They're good enough for a drawn map, but it isn't a survey.
+
+The background survey is the Ordnance Survey London five-foot map (surveyed 1893–96), reproduced from the National Library of Scotland (CC BY). Its tiles are stitched into the images in `os1890s/`.
