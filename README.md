@@ -1,14 +1,12 @@
 # second-app
 
-**London, 1886**: an interactive, hand-styled plan of the Victorian metropolis.
+**London, 1886**: a clean, simple reference plan for drawing Victorian London.
 
-Open `index.html` in a browser. There's no build step or dependencies; it only loads Google Fonts.
+Open `index.html` in a browser. There's no build step; the only external request is Google Fonts.
 
-- Drag to pan. Scroll, pinch or use the + / − buttons to zoom.
-- Only five areas are marked, as a drawing reference: **Westminster**, **Lambeth**, **the New Cut**, **Chinatown** (Limehouse Causeway and Pennyfields, plus the older quarter at Bluegate Fields, Shadwell), and **every Thames crossing**. That's 20 bridges from Hammersmith to the Tower Bridge works, plus the Tower Subway and Thames Tunnel.
-- Each area is outlined on the plan. Choose an area in the panel to jump to it.
-- Click any mark to read a note about it. The gazetteer lists bridges from upstream to downstream.
-- Main-line railways and streets are shown by default. The underground railways, parish names, cab radius and fog are off, and can be switched on under Layers.
-- Dark mode shows the map by gaslight.
+- It marks five areas, each with its own colour: **Westminster**, **Lambeth**, **the New Cut**, **Chinatown** (Limehouse Causeway and Pennyfields, plus the older quarter at Bluegate Fields, Shadwell), and **every Thames crossing**. The 22 crossings are numbered west to east, from Hammersmith to the Thames Tunnel.
+- Drag to move. Scroll, pinch or use + / − to zoom. Tap any dot or number for a short note.
+- Area outlines and a short list of streets are on by default. Railways can be switched on under Layers.
+- It follows your light or dark theme.
 
-Geography is drawn from approximate latitude/longitude on an equirectangular projection. It's a stylised plan, not a survey.
+Positions come from hand-plotted latitude/longitude. They're good enough for a drawn map, but it isn't a survey.
