@@ -5,11 +5,10 @@
 Open `index.html` in a browser. There's no build step or dependencies; it only loads Google Fonts.
 
 - Drag to pan. Scroll, pinch or use the + / − buttons to zoom.
-- Click any mark to read about it in the gazetteer. You can search it or filter by category.
-- **The Year 1886** tour steps through the year's events: *Jekyll and Hyde*, the Trafalgar Square riot, Shaftesbury Avenue, the Colonial & Indian Exhibition, the new St Paul's station, the defeat of Home Rule, the Tower Bridge foundation stone, and more. Use the ← / → keys while touring.
-- Layers: streets, main-line railways, the Metropolitan & District underground (Inner Circle, completed 1884), parish names, and the four-mile cab-fare radius from Charing Cross.
-- A fog slider runs from "a clear day" to "a London particular".
+- Only five areas are marked, as a drawing reference: **Westminster**, **Lambeth**, **the New Cut**, **Chinatown** (Limehouse Causeway and Pennyfields, plus the older quarter at Bluegate Fields, Shadwell), and **every Thames crossing**. That's 20 bridges from Hammersmith to the Tower Bridge works, plus the Tower Subway and Thames Tunnel.
+- Each area is outlined on the plan. Choose an area in the panel to jump to it.
+- Click any mark to read a note about it. The gazetteer lists bridges from upstream to downstream.
+- Main-line railways and streets are shown by default. The underground railways, parish names, cab radius and fog are off, and can be switched on under Layers.
 - Dark mode shows the map by gaslight.
-- The pointer readout gives your distance from Charing Cross in miles and furlongs.
 
 Geography is drawn from approximate latitude/longitude on an equirectangular projection. It's a stylised plan, not a survey.
