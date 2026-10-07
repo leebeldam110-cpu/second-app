@@ -20,10 +20,16 @@ python3 -m http.server 8000
 
 ## Rules
 
-- You die if you hit the wall, cross your own trail, or someone crosses your trail.
+- The arena is round. Glancing off the border slides you along it; driving straight into it kills you.
+- You die if you cross your own trail or someone crosses your trail.
 - Head-on collision: the player standing on their own land survives; otherwise both die.
 - If all of a player's land is captured, they're eliminated.
-- Bots respawn a few seconds after dying.
+- Bots respawn a few seconds after dying, as long as there's free space.
+- Own 100% of the arena to win.
+
+## Skins
+
+Pick a colour and a pattern (solid, stripes, dots, checks, waves) on the start screen. Your choice and your best score are remembered on that device.
 
 ## Files
 

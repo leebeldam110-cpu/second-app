@@ -44,7 +44,7 @@ html, body {
 }
 
 #stat-area { font-size: 22px; }
-#stat-kills { font-size: 14px; opacity: 0.85; }
+#stat-kills, #stat-rank { font-size: 14px; opacity: 0.85; }
 
 #leaderboard {
   margin: 0;
@@ -73,10 +73,9 @@ html, body {
   bottom: calc(12px + env(safe-area-inset-bottom, 0px));
   width: 150px;
   height: 150px;
-  border-radius: 8px;
   border: 2px solid rgba(0, 0, 0, 0.35);
   background: rgba(255, 255, 255, 0.5);
-  image-rendering: pixelated;
+  border-radius: 50%;
 }
 
 #feed {
@@ -155,6 +154,66 @@ button {
   cursor: pointer;
 }
 button:active { transform: translateY(2px); border-bottom-width: 2px; }
+button:focus-visible { outline: 3px solid #3fa7e0; outline-offset: 2px; }
+
+button.secondary {
+  margin-top: 10px;
+  padding: 10px;
+  font-size: 16px;
+  color: #23303f;
+  background: #e6ebf0;
+  border-bottom-color: #c5ced7;
+}
+
+.skin {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.skin label {
+  font-size: 12px;
+  color: #8a96a3;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.swatches, .patterns {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.swatches button, .patterns button {
+  width: auto;
+  padding: 0;
+  border: 3px solid transparent;
+  border-bottom-width: 3px;
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+}
+.swatches button { width: 30px; height: 30px; }
+.patterns button {
+  width: 46px;
+  height: 46px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: none;
+}
+.patterns canvas { display: block; width: 100%; height: 100%; }
+.swatches button.on, .patterns button.on { border-color: #23303f; }
+.swatches button:active, .patterns button:active { transform: none; border-bottom-width: 3px; }
+
+.best { margin: 12px 0 0; font-weight: 700; color: #23303f; }
+.best:empty { display: none; }
+.new-best {
+  display: inline-block;
+  margin: 0 0 14px;
+  padding: 3px 12px;
+  border-radius: 20px;
+  background: #ffd84d;
+  color: #5a4500;
+  font-weight: 800;
+}
 
 .results {
   display: flex;

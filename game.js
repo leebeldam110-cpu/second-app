@@ -3,7 +3,9 @@
 // ---------------------------------------------------------------------------
 // Config
 // ---------------------------------------------------------------------------
-const GRID = 200;            // world is GRID x GRID cells
+const GRID = 200;            // world is a GRID x GRID grid of cells...
+const CENTER = GRID / 2;
+const ARENA_R = GRID / 2 - 1.5; // ...with a round arena inside it
 const SPEED = 12;            // cells per second
 const TURN_RATE = 7;         // max radians per second a head can turn
 const SUBSTEP = 0.4;         // max distance moved per collision step (cells)
@@ -12,6 +14,8 @@ const START_RADIUS = 5;      // starting territory is a circle of this radius
 const BOT_RESPAWN_MS = 3000;
 const HEAD_SIZE = 2.2;       // avatar size in cells
 const JOY_RADIUS = 70;       // touch joystick radius in px
+const BORDER_KILL_ANGLE = 0.4; // hitting the border closer than this to head-on kills
+const WIN_PERCENT = 99.9;
 
 const BOT_NAMES = [
   'Pixel', 'Zigzag', 'Blocky', 'Scribble', 'Inkwell', 'Origami', 'Crayon',
@@ -19,24 +23,40 @@ const BOT_NAMES = [
   'Snippet', 'Folder', 'Stencil', 'Ruler',
 ];
 
-const HUES = [0, 30, 50, 90, 140, 170, 260, 285, 315, 340];
+const BOT_HUES = [0, 22, 42, 58, 90, 125, 150, 172, 250, 270, 290, 310, 330, 348];
+const SKIN_HUES = [210, 0, 30, 52, 135, 172, 280, 325];
+const PATTERNS = ['solid', 'stripes', 'dots', 'checks', 'waves'];
 
 // ---------------------------------------------------------------------------
 // World state
 // ---------------------------------------------------------------------------
 const owner = new Int32Array(GRID * GRID); // player id owning each cell (0 = none)
 const trail = new Int32Array(GRID * GRID); // player id whose trail is on cell
+const inside = new Uint8Array(GRID * GRID); // 1 = cell is part of the arena
 const areaCount = new Map();               // id -> number of owned cells
 const byId = new Map();                    // id -> player
 const players = [];
+const ghosts = [];                         // fading land of eliminated players
+const particles = [];
 let nextId = 1;
 let human = null;
-let state = 'menu';                        // 'menu' | 'playing' | 'dead'
+let state = 'menu';                        // 'menu' | 'playing' | 'dead' | 'won'
 
 const idx = (x, y) => y * GRID + x;
-const inBounds = (x, y) => x >= 0 && y >= 0 && x < GRID && y < GRID;
 const rand = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
 const TAU = Math.PI * 2;
+
+let ARENA_CELLS = 0;
+for (let y = 0; y < GRID; y++) {
+  for (let x = 0; x < GRID; x++) {
+    if (Math.hypot(x + 0.5 - CENTER, y + 0.5 - CENTER) <= ARENA_R + 0.3) {
+      inside[idx(x, y)] = 1;
+      ARENA_CELLS++;
+    }
+  }
+}
+const inBounds = (x, y) =>
+  x >= 0 && y >= 0 && x < GRID && y < GRID && inside[idx(x, y)] === 1;
 
 function angleDiff(a, b) {
   let d = (a - b) % TAU;
@@ -70,13 +90,27 @@ function makeColors(hue) {
   };
 }
 
+const hueGap = (a, b) => Math.min(Math.abs(a - b), 360 - Math.abs(a - b));
+
+// Pick a bot colour that is far from the player's and not already common.
+function pickBotHue(self) {
+  let best = BOT_HUES[0], bestScore = -Infinity;
+  for (const h of BOT_HUES) {
+    let score = Math.random();
+    if (human && hueGap(h, human.hue) < 25) score -= 100;
+    for (const o of players) if (o !== self && o.isBot && o.alive && o.hue === h) score -= 10;
+    if (score > bestScore) { bestScore = score; best = h; }
+  }
+  return best;
+}
+
 // ---------------------------------------------------------------------------
 // Players
 // ---------------------------------------------------------------------------
-function createPlayer(name, hue, isBot) {
+function createPlayer(name, isBot) {
   const p = {
     id: 0, name, isBot, alive: false,
-    colors: makeColors(hue),
+    hue: 0, colors: null, pattern: 'solid',
     px: 0, py: 0,          // precise position (cells, float)
     cx: 0, cy: 0,          // current cell
     angle: 0, target: 0,   // heading and desired heading (radians)
@@ -91,31 +125,48 @@ function createPlayer(name, hue, isBot) {
   return p;
 }
 
+function findSpawn(r) {
+  for (let attempt = 0; attempt < 300; attempt++) {
+    const a = Math.random() * TAU;
+    const d = Math.sqrt(Math.random()) * (ARENA_R - r - 8);
+    const sx = Math.floor(CENTER + Math.cos(a) * d);
+    const sy = Math.floor(CENTER + Math.sin(a) * d);
+    if (areaIsFree(sx, sy, r + 3) && !players.some(o =>
+      o.alive && Math.abs(o.cx - sx) + Math.abs(o.cy - sy) < 25)) return { sx, sy };
+  }
+  return null;
+}
+
+// Returns false if there is no room to spawn (bots then wait and retry).
 function spawnPlayer(p) {
   const r = START_RADIUS;
-  let sx = 0, sy = 0, found = false;
-  for (let attempt = 0; attempt < 300 && !found; attempt++) {
-    sx = rand(r + 6, GRID - r - 7);
-    sy = rand(r + 6, GRID - r - 7);
-    found = areaIsFree(sx, sy, r + 3) && !players.some(o =>
-      o.alive && Math.abs(o.cx - sx) + Math.abs(o.cy - sy) < 25);
-  }
-  if (!found) {
-    // Fall back to any spot that is at least not on someone's trail.
-    for (let attempt = 0; attempt < 300; attempt++) {
-      sx = rand(r + 1, GRID - r - 2);
-      sy = rand(r + 1, GRID - r - 2);
-      if (areaIsFree(sx, sy, r, true)) break;
+  let spot = findSpawn(r);
+  if (!spot) {
+    if (p.isBot) return false;
+    // The player must always get in: take any spot not on someone's trail.
+    for (let attempt = 0; attempt < 500; attempt++) {
+      const a = Math.random() * TAU;
+      const d = Math.sqrt(Math.random()) * (ARENA_R - r - 2);
+      const sx = Math.floor(CENTER + Math.cos(a) * d);
+      const sy = Math.floor(CENTER + Math.sin(a) * d);
+      if (areaIsFree(sx, sy, r, true)) { spot = { sx, sy }; break; }
     }
+    if (!spot) spot = { sx: CENTER, sy: CENTER };
   }
+  const { sx, sy } = spot;
 
+  if (p.isBot) {
+    p.hue = pickBotHue(p);
+    p.pattern = PATTERNS[rand(0, PATTERNS.length - 1)];
+  }
+  p.colors = makeColors(p.hue);
   p.id = nextId++;
   byId.set(p.id, p);
   areaCount.set(p.id, 0);
   p.alive = true;
   p.cx = sx; p.cy = sy;
   p.px = sx + 0.5; p.py = sy + 0.5;
-  p.angle = Math.atan2(GRID / 2 - sy, GRID / 2 - sx) + (Math.random() - 0.5);
+  p.angle = Math.atan2(CENTER - sy, CENTER - sx) + (Math.random() - 0.5);
   p.target = p.angle;
   p.trail = [];
   p.trailPts = [];
@@ -129,11 +180,13 @@ function spawnPlayer(p) {
   for (let y = sy - r; y <= sy + r; y++) {
     for (let x = sx - r; x <= sx + r; x++) {
       if ((x - sx) ** 2 + (y - sy) ** 2 > r * r + r) continue;
+      if (!inBounds(x, y)) continue;
       const i = idx(x, y);
       if (trail[i]) continue;
       setOwner(i, p.id);
     }
   }
+  return true;
 }
 
 function areaIsFree(cx, cy, r, trailOnly = false) {
@@ -161,7 +214,12 @@ function kill(p, killer, reason) {
   for (const i of p.trail) if (trail[i] === p.id) trail[i] = 0;
   p.trail = [];
   p.trailPts = [];
-  for (let i = 0; i < owner.length; i++) if (owner[i] === p.id) owner[i] = 0;
+  const lost = [];
+  for (let i = 0; i < owner.length; i++) {
+    if (owner[i] === p.id) { owner[i] = 0; lost.push(i); }
+  }
+  ghosts.push({ cells: lost, color: p.colors.main, age: 0 });
+  burst(p);
   areaCount.delete(p.id);
   byId.delete(p.id);
 
@@ -171,9 +229,11 @@ function kill(p, killer, reason) {
   }
 
   if (p === human) {
-    state = 'dead';
     joy.active = false;
-    setTimeout(() => showGameOver(reason), 900);
+    if (state === 'playing') {
+      state = 'dead';
+      setTimeout(() => showEnd(false, reason), 900);
+    }
   } else {
     p.respawnAt = performance.now() + BOT_RESPAWN_MS;
   }
@@ -213,7 +273,8 @@ function capture(p) {
   }
   for (let y = y0; y <= y1; y++) {
     for (let x = x0; x <= x1; x++) {
-      if (!seen[(y - y0) * w + (x - x0)]) setOwner(idx(x, y), p.id);
+      const i = idx(x, y);
+      if (!seen[(y - y0) * w + (x - x0)] && inside[i]) setOwner(i, p.id);
     }
   }
 
@@ -228,7 +289,7 @@ function capture(p) {
 // The head has moved into cell (x, y): resolve what happens there.
 function enterCell(p, x, y) {
   p.cx = x; p.cy = y;
-  if (!inBounds(x, y)) return kill(p, null, 'You hit the wall');
+  if (!inBounds(x, y)) return kill(p, null, 'You ran into the border');
 
   const i = idx(x, y);
   const t = trail[i];
@@ -252,29 +313,47 @@ function movePlayer(p, dt) {
   const maxTurn = TURN_RATE * dt;
   p.angle += Math.max(-maxTurn, Math.min(maxTurn, turn));
 
-  const cos = Math.cos(p.angle), sin = Math.sin(p.angle);
+  const limit = ARENA_R - 0.5;
   let dist = SPEED * dt;
   while (dist > 0 && p.alive) {
     const step = Math.min(SUBSTEP, dist);
     dist -= step;
     const ox = p.px, oy = p.py;
-    p.px += cos * step;
-    p.py += sin * step;
-    const nx = Math.floor(p.px), ny = Math.floor(p.py);
+    let nx = ox + Math.cos(p.angle) * step;
+    let ny = oy + Math.sin(p.angle) * step;
 
-    if (nx !== p.cx || ny !== p.cy) {
-      if (nx !== p.cx && ny !== p.cy) {
+    // Border: a head-on hit is fatal, a glancing one slides along the edge.
+    const rx = nx - CENTER, ry = ny - CENTER;
+    const r = Math.hypot(rx, ry);
+    if (r > limit) {
+      const outward = Math.atan2(ry, rx);
+      if (Math.abs(angleDiff(p.angle, outward)) < BORDER_KILL_ANGLE) {
+        kill(p, null, 'You ran into the border');
+        break;
+      }
+      const t1 = outward + Math.PI / 2, t2 = outward - Math.PI / 2;
+      p.angle = Math.abs(angleDiff(p.angle, t1)) < Math.abs(angleDiff(p.angle, t2)) ? t1 : t2;
+      nx = ox + Math.cos(p.angle) * step;
+      ny = oy + Math.sin(p.angle) * step;
+      const k = limit / Math.hypot(nx - CENTER, ny - CENTER);
+      if (k < 1) { nx = CENTER + (nx - CENTER) * k; ny = CENTER + (ny - CENTER) * k; }
+    }
+    p.px = nx; p.py = ny;
+
+    const cx = Math.floor(nx), cy = Math.floor(ny);
+    if (cx !== p.cx || cy !== p.cy) {
+      if (cx !== p.cx && cy !== p.cy) {
         // Crossed a corner: visit the in-between cell first so trails stay
         // 4-connected and nobody can slip through a diagonal gap.
-        const bx = nx > p.cx ? nx : p.cx;
-        const by = ny > p.cy ? ny : p.cy;
-        const tx = (bx - ox) / (p.px - ox);
-        const ty = (by - oy) / (p.py - oy);
-        if (tx < ty) enterCell(p, nx, p.cy);
-        else enterCell(p, p.cx, ny);
+        const bx = cx > p.cx ? cx : p.cx;
+        const by = cy > p.cy ? cy : p.cy;
+        const tx = (bx - ox) / (nx - ox);
+        const ty = (by - oy) / (ny - oy);
+        if (tx < ty) enterCell(p, cx, p.cy);
+        else enterCell(p, p.cx, cy);
         if (!p.alive) break;
       }
-      enterCell(p, nx, ny);
+      enterCell(p, cx, cy);
     }
 
     if (p.trail.length) {
@@ -338,7 +417,7 @@ function freeSpace(p, sx, sy, limit) {
   return count;
 }
 
-// Distance along angle `a` until a wall or own trail, or Infinity if clear.
+// Distance along angle `a` until the border or own trail, or Infinity if clear.
 function rayBlocked(p, a, len) {
   const c = Math.cos(a), s = Math.sin(a);
   for (let d = 1; d <= len; d += 0.5) {
@@ -364,7 +443,7 @@ function nearestOwnCell(p) {
     }
     if (best) return best;
   }
-  return { x: GRID >> 1, y: GRID >> 1 };
+  return { x: CENTER, y: CENTER };
 }
 
 function nearestEnemyTrail(p, r) {
@@ -390,15 +469,21 @@ function enemyHeadDistance(p) {
   return best;
 }
 
+function clampToArena(x, y) {
+  const dx = x - CENTER, dy = y - CENTER;
+  const d = Math.hypot(dx, dy), max = ARENA_R - 4;
+  if (d > max) { x = CENTER + dx / d * max; y = CENTER + dy / d * max; }
+  return { x: Math.floor(x), y: Math.floor(y) };
+}
+
 function planExcursion(p) {
   const area = areaCount.get(p.id) || 1;
   const reach = Math.sqrt(area) / 2 + rand(6, 18);
   const a0 = Math.random() * TAU;
   const side = a0 + (Math.random() < 0.5 ? 1 : -1) * (Math.PI / 2 + (Math.random() - 0.5) * 0.6);
-  const clamp = v => Math.max(2, Math.min(GRID - 3, Math.round(v)));
-  const a = { x: clamp(p.px + Math.cos(a0) * reach), y: clamp(p.py + Math.sin(a0) * reach) };
+  const a = clampToArena(p.px + Math.cos(a0) * reach, p.py + Math.sin(a0) * reach);
   const len = rand(6, 18);
-  const b = { x: clamp(a.x + Math.cos(side) * len), y: clamp(a.y + Math.sin(side) * len) };
+  const b = clampToArena(a.x + Math.cos(side) * len, a.y + Math.sin(side) * len);
   p.ai.waypoints = [a, b];
   p.ai.maxTrail = rand(30, 90);
   p.ai.mode = 'out';
@@ -456,7 +541,7 @@ function update(dt) {
   if (human && human.alive) steerHuman();
   for (const p of players) {
     if (!p.alive) {
-      if (p.isBot && now >= p.respawnAt) spawnPlayer(p);
+      if (p.isBot && now >= p.respawnAt && !spawnPlayer(p)) p.respawnAt = now + 1000;
       continue;
     }
     if (p.isBot) {
@@ -471,8 +556,27 @@ function update(dt) {
   resolveHeadOns();
 
   if (human && human.alive) {
-    const pct = (areaCount.get(human.id) || 0) / (GRID * GRID) * 100;
-    human.bestArea = Math.max(human.bestArea, pct);
+    const share = pct(human);
+    human.bestArea = Math.max(human.bestArea, share);
+    if (share >= WIN_PERCENT && state === 'playing') {
+      state = 'won';
+      showEnd(true);
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Effects
+// ---------------------------------------------------------------------------
+function burst(p) {
+  for (let i = 0; i < 26; i++) {
+    const a = Math.random() * TAU, v = 4 + Math.random() * 10;
+    particles.push({
+      x: p.px, y: p.py, vx: Math.cos(a) * v, vy: Math.sin(a) * v,
+      life: 0.6 + Math.random() * 0.5, age: 0,
+      size: 0.4 + Math.random() * 0.7, spin: Math.random() * TAU,
+      color: Math.random() < 0.5 ? p.colors.main : p.colors.dark,
+    });
   }
 }
 
@@ -487,7 +591,7 @@ mini.width = GRID; mini.height = GRID;
 const miniImage = mctx.createImageData(GRID, GRID);
 
 let viewW = 0, viewH = 0, cell = 12;
-const cam = { x: GRID / 2, y: GRID / 2 };
+const cam = { x: CENTER, y: CENTER };
 
 function resize() {
   const dpr = window.devicePixelRatio || 1;
@@ -501,14 +605,106 @@ function resize() {
 window.addEventListener('resize', resize);
 resize();
 
+// Skin patterns are white overlays drawn on top of the player's colour.
+const TILE = 32;
+function drawPatternTile(g, type) {
+  g.fillStyle = 'rgba(255,255,255,0.3)';
+  g.strokeStyle = 'rgba(255,255,255,0.3)';
+  if (type === 'stripes') {
+    g.lineWidth = 7;
+    for (let o = -TILE; o <= TILE; o += 16) {
+      g.beginPath(); g.moveTo(o, TILE); g.lineTo(o + TILE, 0); g.stroke();
+    }
+  } else if (type === 'dots') {
+    for (const [x, y] of [[8, 8], [24, 24]]) {
+      g.beginPath(); g.arc(x, y, 4.5, 0, TAU); g.fill();
+    }
+  } else if (type === 'checks') {
+    g.fillRect(0, 0, 16, 16); g.fillRect(16, 16, 16, 16);
+  } else if (type === 'waves') {
+    g.lineWidth = 4;
+    for (const y0 of [8, 24]) {
+      g.beginPath();
+      for (let x = 0; x <= TILE; x++) {
+        const y = y0 + Math.sin(x / TILE * TAU) * 4;
+        x ? g.lineTo(x, y) : g.moveTo(x, y);
+      }
+      g.stroke();
+    }
+  }
+}
+const patternCache = {};
+function getPattern(type) {
+  if (type === 'solid') return null;
+  if (!patternCache[type]) {
+    const c = document.createElement('canvas');
+    c.width = c.height = TILE;
+    drawPatternTile(c.getContext('2d'), type);
+    patternCache[type] = ctx.createPattern(c, 'repeat');
+  }
+  return patternCache[type];
+}
+
 function cameraTarget() {
-  if (human && (human.alive || state === 'dead')) return human;
+  if (human && (human.alive || state !== 'menu')) return human;
   const bot = players.find(p => p.alive);
-  return bot || { px: GRID / 2, py: GRID / 2 };
+  return bot || { px: CENTER, py: CENTER };
 }
 
 const screenX = x => viewW / 2 + (x - cam.x) * cell;
 const screenY = y => viewH / 2 + (y - cam.y) * cell;
+
+// Build one smooth outline per owner using marching squares over cell
+// centres, so diagonal edges become slopes instead of staircases.
+function buildTerritoryPaths(minX, minY, maxX, maxY) {
+  const paths = new Map();
+  const pathFor = id => {
+    let path = paths.get(id);
+    if (!path) { path = new Path2D(); paths.set(id, path); }
+    return path;
+  };
+  const own = (x, y) => (x < 0 || y < 0 || x >= GRID || y >= GRID) ? 0 : owner[idx(x, y)];
+  const h = cell / 2;
+
+  for (let y = minY - 1; y <= maxY; y++) {
+    let runId = 0, runStart = 0;
+    const flush = end => {
+      if (runId) pathFor(runId).rect(screenX(runStart + 0.5), screenY(y + 0.5), (end - runStart) * cell, cell);
+      runId = 0;
+    };
+    for (let x = minX - 1; x <= maxX; x++) {
+      const a = own(x, y), b = own(x + 1, y), c = own(x + 1, y + 1), d = own(x, y + 1);
+      if (a && a === b && a === c && a === d) {
+        if (runId !== a) { flush(x); runId = a; runStart = x; }
+        continue;
+      }
+      flush(x);
+      if (!a && !b && !c && !d) continue;
+      const X = screenX(x + 0.5), Y = screenY(y + 0.5);
+      const done = [];
+      for (const id of [a, b, c, d]) {
+        if (!id || done.includes(id)) continue;
+        done.push(id);
+        const tl = a === id, tr = b === id, br = c === id, bl = d === id;
+        const path = pathFor(id);
+        const pts = [];
+        if (tl) pts.push(X, Y);
+        if (tl !== tr) pts.push(X + h, Y);
+        if (tr) pts.push(X + cell, Y);
+        if (tr !== br) pts.push(X + cell, Y + h);
+        if (br) pts.push(X + cell, Y + cell);
+        if (br !== bl) pts.push(X + h, Y + cell);
+        if (bl) pts.push(X, Y + cell);
+        if (bl !== tl) pts.push(X, Y + h);
+        path.moveTo(pts[0], pts[1]);
+        for (let i = 2; i < pts.length; i += 2) path.lineTo(pts[i], pts[i + 1]);
+        path.closePath();
+      }
+    }
+    flush(maxX + 1);
+  }
+  return paths;
+}
 
 function render(dt) {
   const t = cameraTarget();
@@ -516,8 +712,8 @@ function render(dt) {
   cam.x += (t.px - cam.x) * k;
   cam.y += (t.py - cam.y) * k;
 
-  // Out-of-bounds background
-  ctx.fillStyle = '#c7d1db';
+  // Outside the arena
+  ctx.fillStyle = '#b9c4cf';
   ctx.fillRect(0, 0, viewW, viewH);
 
   const minX = Math.max(0, Math.floor(cam.x - viewW / 2 / cell) - 1);
@@ -525,9 +721,15 @@ function render(dt) {
   const maxX = Math.min(GRID - 1, Math.ceil(cam.x + viewW / 2 / cell) + 1);
   const maxY = Math.min(GRID - 1, Math.ceil(cam.y + viewH / 2 / cell) + 1);
 
-  // Playfield with a subtle checkerboard of 5x5-cell tiles
+  // Round arena floor with a subtle checkerboard of 5x5-cell tiles
+  const ax = screenX(CENTER), ay = screenY(CENTER), ar = ARENA_R * cell;
+  ctx.fillStyle = '#9aa7b4';
+  ctx.beginPath(); ctx.arc(ax, ay + Math.max(3, cell * 0.5), ar, 0, TAU); ctx.fill();
+  ctx.save();
+  ctx.beginPath(); ctx.arc(ax, ay, ar, 0, TAU);
   ctx.fillStyle = '#eef2f6';
-  ctx.fillRect(screenX(0), screenY(0), GRID * cell, GRID * cell);
+  ctx.fill();
+  ctx.clip();
   ctx.fillStyle = '#e4e9ef';
   const T = 5;
   for (let ty = Math.floor(minY / T); ty <= Math.floor(maxY / T); ty++) {
@@ -535,26 +737,47 @@ function render(dt) {
       if ((tx + ty) & 1) ctx.fillRect(screenX(tx * T), screenY(ty * T), T * cell, T * cell);
     }
   }
+  ctx.restore();
+
+  // Land of eliminated players fading out
+  for (let g = ghosts.length - 1; g >= 0; g--) {
+    const gh = ghosts[g];
+    gh.age += dt;
+    if (gh.age > 0.6) { ghosts.splice(g, 1); continue; }
+    ctx.globalAlpha = 0.8 * (1 - gh.age / 0.6);
+    ctx.fillStyle = gh.color;
+    for (const i of gh.cells) {
+      const x = i % GRID, y = (i / GRID) | 0;
+      if (x < minX || x > maxX || y < minY || y > maxY) continue;
+      ctx.fillRect(screenX(x), screenY(y), cell + 0.5, cell + 0.5);
+    }
+  }
+  ctx.globalAlpha = 1;
 
   // Territory: dark "side" pass first, then the top face, to give depth.
-  // Adjacent same-owner cells in a row are merged into one rect.
   const depth = Math.max(3, cell * 0.5);
-  for (let pass = 0; pass < 2; pass++) {
-    for (let y = minY; y <= maxY; y++) {
-      let x = minX;
-      while (x <= maxX) {
-        const o = owner[idx(x, y)];
-        if (!o) { x++; continue; }
-        let x2 = x + 1;
-        while (x2 <= maxX && owner[idx(x2, y)] === o) x2++;
-        const p = byId.get(o);
-        if (p) {
-          ctx.fillStyle = pass === 0 ? p.colors.dark : p.colors.main;
-          ctx.fillRect(screenX(x), screenY(y) + (pass === 0 ? depth : 0),
-            (x2 - x) * cell + 0.5, cell + 0.5);
-        }
-        x = x2;
-      }
+  const paths = buildTerritoryPaths(minX, minY, maxX, maxY);
+  ctx.save();
+  ctx.translate(0, depth);
+  for (const [id, path] of paths) {
+    const p = byId.get(id);
+    if (!p) continue;
+    ctx.fillStyle = p.colors.dark;
+    ctx.fill(path);
+  }
+  ctx.restore();
+  const patScale = (4 * cell) / TILE;
+  const patMatrix = new DOMMatrix([patScale, 0, 0, patScale, screenX(0), screenY(0)]);
+  for (const [id, path] of paths) {
+    const p = byId.get(id);
+    if (!p) continue;
+    ctx.fillStyle = p.colors.main;
+    ctx.fill(path);
+    const pat = getPattern(p.pattern);
+    if (pat) {
+      pat.setTransform(patMatrix);
+      ctx.fillStyle = pat;
+      ctx.fill(path);
     }
   }
 
@@ -591,6 +814,12 @@ function render(dt) {
     ctx.fillStyle = p.colors.main;
     roundRect(-size / 2, -size / 2, size, size, size * 0.25);
     ctx.fill();
+    const pat = getPattern(p.pattern);
+    if (pat) {
+      pat.setTransform(new DOMMatrix([patScale * 0.6, 0, 0, patScale * 0.6, 0, 0]));
+      ctx.fillStyle = pat;
+      ctx.fill();
+    }
     ctx.strokeStyle = 'rgba(255,255,255,0.85)';
     ctx.lineWidth = 2;
     roundRect(-size / 2 + 3, -size / 2 + 3, size - 6, size - 6, size * 0.18);
@@ -602,6 +831,23 @@ function render(dt) {
     ctx.strokeText(p.name, sx, sy - size * 0.75);
     ctx.fillStyle = '#fff';
     ctx.fillText(p.name, sx, sy - size * 0.75);
+  }
+
+  // Death bursts
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const q = particles[i];
+    q.age += dt;
+    if (q.age >= q.life) { particles.splice(i, 1); continue; }
+    q.x += q.vx * dt; q.y += q.vy * dt;
+    q.vx *= 1 - dt * 3; q.vy *= 1 - dt * 3;
+    q.spin += dt * 6;
+    const s = q.size * cell * (1 - q.age / q.life);
+    ctx.save();
+    ctx.translate(screenX(q.x), screenY(q.y));
+    ctx.rotate(q.spin);
+    ctx.fillStyle = q.color;
+    ctx.fillRect(-s / 2, -s / 2, s, s);
+    ctx.restore();
   }
 
   // Touch joystick
@@ -633,14 +879,15 @@ function roundRect(x, y, w, h, r) {
 function renderMinimap() {
   const d = miniImage.data;
   for (let i = 0; i < owner.length; i++) {
+    const j = i * 4;
+    if (!inside[i]) { d[j + 3] = 0; continue; }
     const id = trail[i] || owner[i];
     const p = id ? byId.get(id) : null;
-    const j = i * 4;
     if (p) {
       d[j] = p.colors.rgb[0]; d[j + 1] = p.colors.rgb[1]; d[j + 2] = p.colors.rgb[2];
       d[j + 3] = trail[i] ? 130 : 255;
     } else {
-      d[j] = d[j + 1] = d[j + 2] = 255; d[j + 3] = 60;
+      d[j] = d[j + 1] = d[j + 2] = 255; d[j + 3] = 90;
     }
   }
   if (human && human.alive) {
@@ -661,16 +908,17 @@ function renderMinimap() {
 // ---------------------------------------------------------------------------
 const $ = id => document.getElementById(id);
 const hud = $('hud'), statArea = $('stat-area'), statKills = $('stat-kills');
-const board = $('leaderboard'), feed = $('feed');
+const statRank = $('stat-rank'), board = $('leaderboard'), feed = $('feed');
 
-const pct = p => (areaCount.get(p.id) || 0) / (GRID * GRID) * 100;
+function pct(p) { return (areaCount.get(p.id) || 0) / ARENA_CELLS * 100; }
 
 function updateHud() {
+  const ranked = players.filter(p => p.alive).sort((a, b) => pct(b) - pct(a));
   if (human && human.alive) {
     statArea.textContent = pct(human).toFixed(2) + '%';
     statKills.textContent = `${human.kills} kill${human.kills === 1 ? '' : 's'}`;
+    statRank.textContent = `Rank ${ranked.indexOf(human) + 1} of ${ranked.length}`;
   }
-  const ranked = players.filter(p => p.alive).sort((a, b) => pct(b) - pct(a));
   const top = ranked.slice(0, 5);
   if (human && human.alive && !top.includes(human)) top.push(human);
   board.innerHTML = '';
@@ -697,14 +945,76 @@ function toast(msg) {
   setTimeout(() => el.remove(), 2300);
 }
 
-function showGameOver(reason) {
-  $('death-reason').textContent = reason || '';
+function loadBest() {
+  try { return parseFloat(localStorage.getItem('pt-best')) || 0; } catch (_) { return 0; }
+}
+function showBest() {
+  const best = loadBest();
+  $('best').textContent = best ? `Your best: ${best.toFixed(2)}%` : '';
+}
+
+function showEnd(won, reason) {
+  const best = loadBest();
+  if (human.bestArea > best) {
+    try { localStorage.setItem('pt-best', String(human.bestArea)); } catch (_) { /* ignore */ }
+  }
+  $('end-title').textContent = won ? 'Arena conquered!' : 'You died!';
+  $('death-reason').textContent = won ? 'You own the whole map.' : (reason || '');
   $('res-area').textContent = human.bestArea.toFixed(2) + '%';
   $('res-kills').textContent = human.kills;
   $('res-time').textContent = Math.round((performance.now() - human.spawnTime) / 1000) + 's';
+  $('new-best').hidden = !(human.bestArea > best && human.bestArea > 0);
   hud.classList.add('hidden');
   mini.classList.add('hidden');
   $('gameover').classList.remove('hidden');
+}
+
+// ---------------------------------------------------------------------------
+// Skin picker
+// ---------------------------------------------------------------------------
+const skin = { hue: SKIN_HUES[0], pattern: 'solid' };
+try {
+  const saved = JSON.parse(localStorage.getItem('pt-skin') || 'null');
+  if (saved && SKIN_HUES.includes(saved.hue) && PATTERNS.includes(saved.pattern)) Object.assign(skin, saved);
+} catch (_) { /* ignore */ }
+
+function buildSkinPicker() {
+  const colors = $('colors'), pats = $('patterns');
+  colors.innerHTML = '';
+  pats.innerHTML = '';
+  for (const hue of SKIN_HUES) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'swatch' + (hue === skin.hue ? ' on' : '');
+    b.style.background = `hsl(${hue},72%,56%)`;
+    b.setAttribute('aria-label', `Colour ${hue}`);
+    b.addEventListener('click', () => { skin.hue = hue; saveSkin(); buildSkinPicker(); });
+    colors.appendChild(b);
+  }
+  for (const type of PATTERNS) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'pattern' + (type === skin.pattern ? ' on' : '');
+    b.setAttribute('aria-label', `${type} pattern`);
+    const c = document.createElement('canvas');
+    c.width = c.height = TILE * 1.5;
+    const g = c.getContext('2d');
+    g.fillStyle = `hsl(${skin.hue},72%,56%)`;
+    g.fillRect(0, 0, c.width, c.height);
+    if (type !== 'solid') {
+      const tile = document.createElement('canvas');
+      tile.width = tile.height = TILE;
+      drawPatternTile(tile.getContext('2d'), type);
+      g.fillStyle = g.createPattern(tile, 'repeat');
+      g.fillRect(0, 0, c.width, c.height);
+    }
+    b.appendChild(c);
+    b.addEventListener('click', () => { skin.pattern = type; saveSkin(); buildSkinPicker(); });
+    pats.appendChild(b);
+  }
+}
+function saveSkin() {
+  try { localStorage.setItem('pt-skin', JSON.stringify(skin)); } catch (_) { /* ignore */ }
 }
 
 // ---------------------------------------------------------------------------
@@ -794,8 +1104,11 @@ window.addEventListener('touchcancel', endTouch, { passive: true });
 function startGame() {
   const name = $('name').value.trim() || 'You';
   try { localStorage.setItem('pt-name', name); } catch (_) { /* ignore */ }
-  if (!human) human = createPlayer(name, 210, false);
+  if (human && human.alive) kill(human, null);
+  if (!human) human = createPlayer(name, false);
   human.name = name;
+  human.hue = skin.hue;
+  human.pattern = skin.pattern;
   spawnPlayer(human);
   cam.x = human.px; cam.y = human.py;
   state = 'playing';
@@ -806,13 +1119,24 @@ function startGame() {
   updateHud();
 }
 
+function backToMenu() {
+  state = 'menu';
+  $('gameover').classList.add('hidden');
+  showBest();
+  buildSkinPicker();
+  $('menu').classList.remove('hidden');
+}
+
 $('play').addEventListener('click', startGame);
 $('again').addEventListener('click', startGame);
+$('to-menu').addEventListener('click', backToMenu);
 try { $('name').value = localStorage.getItem('pt-name') || ''; } catch (_) { /* ignore */ }
+buildSkinPicker();
+showBest();
 
 const names = BOT_NAMES.slice().sort(() => Math.random() - 0.5);
 for (let i = 0; i < BOT_COUNT; i++) {
-  spawnPlayer(createPlayer(names[i % names.length], HUES[i % HUES.length] + 8, true));
+  spawnPlayer(createPlayer(names[i % names.length], true));
 }
 
 let last = performance.now(), hudTimer = 0, miniTimer = 0;
