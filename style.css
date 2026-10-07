@@ -23,7 +23,7 @@ html, body {
 
 #hud {
   position: fixed;
-  top: 12px;
+  top: calc(12px + env(safe-area-inset-top, 0px));
   left: 12px;
   right: 12px;
   display: flex;
@@ -70,7 +70,7 @@ html, body {
 #minimap {
   position: fixed;
   right: 12px;
-  bottom: 12px;
+  bottom: calc(12px + env(safe-area-inset-bottom, 0px));
   width: 150px;
   height: 150px;
   border-radius: 8px;
