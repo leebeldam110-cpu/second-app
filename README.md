@@ -24,6 +24,7 @@ python3 -m http.server 8000
 - You die if you cross your own trail or someone crosses your trail.
 - Head-on collision: the player standing on their own land survives; otherwise both die.
 - If all of a player's land is captured, they're eliminated.
+- A player's land must stay in one piece. If someone cuts it in two, the smaller piece goes back to neutral.
 - Bots respawn a few seconds after dying, as long as there's free space.
 - Own 100% of the arena to win.
 

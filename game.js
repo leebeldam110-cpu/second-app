@@ -68,9 +68,13 @@ function angleDiff(a, b) {
   return d;
 }
 
+// Players who lost land to someone else since the last split check.
+const damaged = new Set();
+
 function setOwner(i, id) {
   const old = owner[i];
   if (old === id) return;
+  if (old && id) damaged.add(old);
   if (old) areaCount.set(old, areaCount.get(old) - 1);
   if (id) areaCount.set(id, (areaCount.get(id) || 0) + 1);
   owner[i] = id;
@@ -189,7 +193,8 @@ function spawnPlayer(p) {
       setOwner(i, p.id);
     }
   }
-  // A fallback spawn may have landed on someone's (tiny) territory.
+  // A fallback spawn may have landed on (and split) someone's territory.
+  resolveSplits();
   eliminateLandless(null);
   return true;
 }
@@ -284,7 +289,66 @@ function capture(p) {
     }
   }
 
+  resolveSplits();
   eliminateLandless(p);
+}
+
+// Each player's land must be one connected piece. For everyone who just lost
+// land, keep their biggest piece and return any cut-off pieces to neutral.
+const pieceMark = new Int32Array(GRID * GRID);
+let pieceStamp = 0;
+function resolveSplits() {
+  for (const id of damaged) {
+    const o = byId.get(id);
+    if (o && o.alive) keepLargestPiece(o);
+  }
+  damaged.clear();
+}
+
+function keepLargestPiece(o) {
+  // All of a player's land lies inside their bounding box (it only grows).
+  const b = o.box;
+  const x0 = Math.max(0, b.x0), y0 = Math.max(0, b.y0);
+  const x1 = Math.min(GRID - 1, b.x1), y1 = Math.min(GRID - 1, b.y1);
+  const stamp = ++pieceStamp;
+  const pieces = [];
+  for (let y = y0; y <= y1; y++) {
+    for (let x = x0; x <= x1; x++) {
+      const start = idx(x, y);
+      if (owner[start] !== o.id || pieceMark[start] === stamp) continue;
+      // Corner-touching cells count as connected, matching how land is drawn.
+      const cells = [start];
+      pieceMark[start] = stamp;
+      for (let k = 0; k < cells.length; k++) {
+        const cx = cells[k] % GRID, cy = (cells[k] / GRID) | 0;
+        for (let dy = -1; dy <= 1; dy++) {
+          for (let dx = -1; dx <= 1; dx++) {
+            const nx = cx + dx, ny = cy + dy;
+            if ((!dx && !dy) || nx < 0 || ny < 0 || nx >= GRID || ny >= GRID) continue;
+            const ni = idx(nx, ny);
+            if (owner[ni] !== o.id || pieceMark[ni] === stamp) continue;
+            pieceMark[ni] = stamp;
+            cells.push(ni);
+          }
+        }
+      }
+      pieces.push(cells);
+    }
+  }
+  if (pieces.length < 2) return;
+
+  // Keep the biggest piece; on a tie, keep the one the player is standing on.
+  const headCell = idx(o.cx, o.cy);
+  let keep = pieces[0];
+  for (const piece of pieces) {
+    if (piece.length > keep.length ||
+        (piece.length === keep.length && piece.includes(headCell))) keep = piece;
+  }
+  for (const piece of pieces) {
+    if (piece === keep) continue;
+    for (const i of piece) setOwner(i, 0);
+    ghosts.push({ cells: piece, color: o.colors.main, age: 0 });
+  }
 }
 
 // Anyone whose land was completely swallowed is eliminated.
