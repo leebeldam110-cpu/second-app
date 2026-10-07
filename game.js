@@ -13,6 +13,7 @@ const BOT_COUNT = 10;
 const START_RADIUS = 5;      // starting territory is a circle of this radius
 const BOT_RESPAWN = 3;       // seconds before a dead bot comes back
 const HEAD_SIZE = 2.2;       // avatar size in cells
+const HOME_REACH = 1.5;      // how close (cells) the avatar's centre must be to its land to count as touching it (~its corner)
 const JOY_RADIUS = 70;       // how far (px) the invisible touch joystick base trails your thumb
 const BORDER_KILL_ANGLE = 0.4; // hitting the border closer than this to head-on kills
 const WIN_PERCENT = 99.9;
@@ -295,6 +296,20 @@ function eliminateLandless(by) {
   }
 }
 
+// Is any of the player's land within the avatar's body (HOME_REACH of its centre)?
+function touchesOwnLand(p) {
+  const r = HOME_REACH;
+  for (let y = Math.floor(p.py - r); y <= Math.floor(p.py + r); y++) {
+    for (let x = Math.floor(p.px - r); x <= Math.floor(p.px + r); x++) {
+      if (!inBounds(x, y) || owner[idx(x, y)] !== p.id) continue;
+      const dx = Math.max(x - p.px, 0, p.px - (x + 1));
+      const dy = Math.max(y - p.py, 0, p.py - (y + 1));
+      if (dx * dx + dy * dy <= r * r) return true;
+    }
+  }
+  return false;
+}
+
 // The head has moved into cell (x, y): resolve what happens there.
 function enterCell(p, x, y) {
   p.cx = x; p.cy = y;
@@ -302,7 +317,12 @@ function enterCell(p, x, y) {
 
   const i = idx(x, y);
   const t = trail[i];
-  if (t === p.id) return kill(p, null, 'You crossed your own trail');
+  if (t === p.id) {
+    // The start of a trail hugs your land, so on a small loop the head can
+    // clip it while the avatar is visibly back home: count that as home.
+    if (touchesOwnLand(p)) return capture(p);
+    return kill(p, null, 'You crossed your own trail');
+  }
   if (t) {
     const victim = byId.get(t);
     if (victim) kill(victim, p, `${p.name} cut your trail`);
