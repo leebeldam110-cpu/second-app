@@ -28,6 +28,15 @@ python3 -m http.server 8000
 - Bots respawn a few seconds after dying, as long as there's free space.
 - Own 100% of the arena to win.
 
+## Hard mode
+
+When you own 60% of the arena, hard mode switches on for the rest of that game:
+
+- Ordinary bots that die stay dead.
+- Three **ultra-bots** join. They share one look (dark with stripes and a red outline) and play as a team: their land is scored together as one "Ultra-bots" entry, they can cross each other's trails, never crash into or hunt each other, and never take each other's land (a teammate's land counts as a wall when they enclose an area).
+- Ultra-bots spawn in different places, move 15% faster than everyone else, and keep respawning.
+- The goal is unchanged: own 100% of the arena. Starting a new game goes back to normal mode.
+
 ## Skins
 
 Pick a colour and a pattern (solid, stripes, dots, checks, waves) on the start screen. Your choice and your best score are remembered on that device.

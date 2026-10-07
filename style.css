@@ -22,6 +22,7 @@ html, body {
 }
 
 .hidden { display: none !important; }
+[hidden] { display: none !important; }
 
 #hud {
   position: fixed;
@@ -47,6 +48,17 @@ html, body {
 
 #stat-area { font-size: 22px; }
 #stat-kills, #stat-rank { font-size: 14px; opacity: 0.85; }
+.hard-badge {
+  align-self: flex-start;
+  margin-top: 2px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: #e5484d;
+  color: #fff;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
 
 #leaderboard {
   margin: 0;

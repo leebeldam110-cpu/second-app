@@ -17,6 +17,12 @@ const HOME_REACH = 1.5;      // how close (cells) the avatar's centre must be to
 const JOY_RADIUS = 70;       // how far (px) the invisible touch joystick base trails your thumb
 const BORDER_KILL_ANGLE = 0.4; // hitting the border closer than this to head-on kills
 const WIN_PERCENT = 99.9;
+const HARD_PERCENT = 60;     // owning this much of the arena switches on hard mode
+const ULTRA_COUNT = 3;
+const ULTRA_SPEED = 1.15;    // ultra-bots move this much faster than everyone else
+const ULTRA_COLORS = {
+  main: '#353a47', dark: '#181b22', trail: 'rgba(53,58,71,0.55)', rgb: [53, 58, 71],
+};
 
 const BOT_NAMES = [
   'Pixel', 'Zigzag', 'Blocky', 'Scribble', 'Inkwell', 'Origami', 'Crayon',
@@ -44,6 +50,7 @@ let nextId = 1;
 let human = null;
 let state = 'menu';                        // 'menu' | 'playing' | 'dead' | 'won'
 let clock = 0;                             // game time in seconds (pauses with the tab)
+let hardMode = false;                      // on once the player owns HARD_PERCENT of the arena
 
 const idx = (x, y) => y * GRID + x;
 const rand = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
@@ -97,6 +104,9 @@ function makeColors(hue) {
   };
 }
 
+// Ultra-bots are one team: they share a score and can't hurt each other.
+const sameTeam = (a, b) => !!(a.ultra && b.ultra);
+
 const hueGap = (a, b) => Math.min(Math.abs(a - b), 360 - Math.abs(a - b));
 
 // Pick a bot colour that is far from the player's and not already common.
@@ -105,7 +115,7 @@ function pickBotHue(self) {
   for (const h of BOT_HUES) {
     let score = Math.random();
     if (human && hueGap(h, human.hue) < 25) score -= 100;
-    for (const o of players) if (o !== self && o.isBot && o.alive && o.hue === h) score -= 10;
+    for (const o of players) if (o !== self && o.isBot && !o.ultra && o.alive && o.hue === h) score -= 10;
     if (score > bestScore) { bestScore = score; best = h; }
   }
   return best;
@@ -117,6 +127,7 @@ function pickBotHue(self) {
 function createPlayer(name, isBot) {
   const p = {
     id: 0, name, isBot, alive: false,
+    ultra: false,          // member of the ultra-bot team (hard mode)
     hue: 0, colors: null, pattern: 'solid',
     px: 0, py: 0,          // precise position (cells, float)
     cx: 0, cy: 0,          // current cell
@@ -162,11 +173,11 @@ function spawnPlayer(p) {
   }
   const { sx, sy } = spot;
 
-  if (p.isBot) {
+  if (p.isBot && !p.ultra) {
     p.hue = pickBotHue(p);
     p.pattern = PATTERNS[rand(0, PATTERNS.length - 1)];
   }
-  p.colors = makeColors(p.hue);
+  p.colors = p.ultra ? ULTRA_COLORS : makeColors(p.hue);
   p.id = nextId++;
   byId.set(p.id, p);
   areaCount.set(p.id, 0);
@@ -246,21 +257,29 @@ function kill(p, killer, reason) {
       setTimeout(() => showEnd(false, reason), 900);
     }
   } else {
-    p.respawnAt = clock + BOT_RESPAWN;
+    // In hard mode ordinary bots stay dead; ultra-bots keep coming back.
+    p.respawnAt = hardMode && !p.ultra ? Infinity : clock + BOT_RESPAWN;
   }
 }
 
 // Called when a player returns to their own land with a trail.
 function capture(p) {
+  // Ultra-bots work together: a teammate's land is never taken and counts as
+  // part of the wall when enclosing an area.
+  const mates = new Set();
+  for (const o of players) if (o.alive && o !== p && sameTeam(p, o)) mates.add(o.id);
+  const ours = i => owner[i] === p.id || mates.has(owner[i]);
+
   for (const i of p.trail) {
     trail[i] = 0;
-    setOwner(i, p.id);
+    if (!mates.has(owner[i])) setOwner(i, p.id);
   }
   p.trail = [];
   p.trailPts = [];
 
   // Flood fill from the edge of the bounding box; anything not reachable
-  // without crossing this player's land is enclosed and gets captured.
+  // without crossing this player's (or their team's) land is enclosed and
+  // gets captured.
   const b = p.box;
   const x0 = Math.max(0, b.x0 - 1), y0 = Math.max(0, b.y0 - 1);
   const x1 = Math.min(GRID - 1, b.x1 + 1), y1 = Math.min(GRID - 1, b.y1 + 1);
@@ -269,7 +288,7 @@ function capture(p) {
   const stack = [];
   const visit = (x, y) => {
     const li = (y - y0) * w + (x - x0);
-    if (seen[li] || owner[idx(x, y)] === p.id) return;
+    if (seen[li] || ours(idx(x, y))) return;
     seen[li] = 1;
     stack.push(x, y);
   };
@@ -285,10 +304,13 @@ function capture(p) {
   for (let y = y0; y <= y1; y++) {
     for (let x = x0; x <= x1; x++) {
       const i = idx(x, y);
-      if (!seen[(y - y0) * w + (x - x0)] && inside[i]) setOwner(i, p.id);
+      if (!seen[(y - y0) * w + (x - x0)] && inside[i] && !mates.has(owner[i])) setOwner(i, p.id);
     }
   }
 
+  // Leaving a teammate's land untouched can leave this player's new land in
+  // pieces, so their own land is checked too.
+  if (p.ultra) damaged.add(p.id);
   resolveSplits();
   eliminateLandless(p);
 }
@@ -389,7 +411,7 @@ function enterCell(p, x, y) {
   }
   if (t) {
     const victim = byId.get(t);
-    if (victim) kill(victim, p, `${p.name} cut your trail`);
+    if (victim && !sameTeam(p, victim)) kill(victim, p, `${p.name} cut your trail`);
   }
 
   if (owner[i] === p.id) {
@@ -407,7 +429,7 @@ function movePlayer(p, dt) {
   p.angle += Math.max(-maxTurn, Math.min(maxTurn, turn));
 
   const limit = ARENA_R - 0.5;
-  let dist = SPEED * dt;
+  let dist = SPEED * (p.ultra ? ULTRA_SPEED : 1) * dt;
   while (dist > 0 && p.alive) {
     const step = Math.min(SUBSTEP, dist);
     dist -= step;
@@ -467,7 +489,7 @@ function resolveHeadOns() {
     if (!A.alive) continue;
     for (let b = a + 1; b < players.length; b++) {
       const B = players[b];
-      if (!B.alive || !A.alive) continue;
+      if (!B.alive || !A.alive || sameTeam(A, B)) continue;
       if ((A.px - B.px) ** 2 + (A.py - B.py) ** 2 > 1.4) continue;
       const aSafe = owner[idx(A.cx, A.cy)] === A.id;
       const bSafe = owner[idx(B.cx, B.cy)] === B.id;
@@ -546,6 +568,8 @@ function nearestEnemyTrail(p, r) {
       if (!inBounds(x, y)) continue;
       const t = trail[idx(x, y)];
       if (!t || t === p.id) continue;
+      const o = byId.get(t);
+      if (o && sameTeam(p, o)) continue;
       const d = Math.abs(x - p.cx) + Math.abs(y - p.cy);
       if (d < bestD) { bestD = d; best = { x, y }; }
     }
@@ -556,7 +580,7 @@ function nearestEnemyTrail(p, r) {
 function enemyHeadDistance(p) {
   let best = Infinity;
   for (const o of players) {
-    if (!o.alive || o === p) continue;
+    if (!o.alive || o === p || sameTeam(p, o)) continue;
     best = Math.min(best, Math.hypot(o.px - p.px, o.py - p.py));
   }
   return best;
@@ -651,11 +675,42 @@ function update(dt) {
   if (human && human.alive) {
     const share = pct(human);
     human.bestArea = Math.max(human.bestArea, share);
+    if (share >= HARD_PERCENT && !hardMode && state === 'playing') startHardMode();
     if (share >= WIN_PERCENT && state === 'playing') {
       state = 'won';
       showEnd(true);
     }
   }
+}
+
+// ---------------------------------------------------------------------------
+// Hard mode: from HARD_PERCENT on, ordinary bots stop respawning and a team of
+// faster ultra-bots joins (and keeps respawning).
+// ---------------------------------------------------------------------------
+function startHardMode() {
+  hardMode = true;
+  for (const b of players) if (b.isBot && !b.alive) b.respawnAt = Infinity;
+  for (let i = 0; i < ULTRA_COUNT; i++) {
+    const u = createPlayer('Ultra-bot', true);
+    u.ultra = true;
+    u.pattern = 'stripes';
+    if (!spawnPlayer(u)) u.respawnAt = clock + 1; // no room yet: keep trying
+  }
+  $('stat-hard').hidden = false;
+  toast('Hard mode! Ultra-bots have joined');
+}
+
+// A new game starts in normal mode: ultra-bots leave and the regular bots return.
+function endHardMode() {
+  hardMode = false;
+  for (let i = players.length - 1; i >= 0; i--) {
+    const b = players[i];
+    if (!b.ultra) continue;
+    kill(b, null);
+    players.splice(i, 1);
+  }
+  for (const b of players) if (b.isBot && !b.alive) b.respawnAt = clock + Math.random() * 2;
+  $('stat-hard').hidden = true;
 }
 
 // ---------------------------------------------------------------------------
@@ -918,7 +973,7 @@ function render(dt) {
       ctx.fillStyle = pat;
       ctx.fill();
     }
-    ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+    ctx.strokeStyle = p.ultra ? '#ff5a5a' : 'rgba(255,255,255,0.85)';
     ctx.lineWidth = 2;
     roundRect(-size / 2 + 3, -size / 2 + 3, size - 6, size - 6, size * 0.18);
     ctx.stroke();
@@ -991,26 +1046,45 @@ const statRank = $('stat-rank'), board = $('leaderboard'), feed = $('feed');
 
 function pct(p) { return (areaCount.get(p.id) || 0) / ARENA_CELLS * 100; }
 
+// Leaderboard entries: one per player, except the ultra-bots share one.
+function standings() {
+  const entries = [];
+  let team = null;
+  for (const p of players) {
+    if (!p.ultra) {
+      if (p.alive) entries.push({ name: p.name, color: p.colors.main, share: pct(p), player: p });
+      continue;
+    }
+    if (!team) {
+      team = { name: 'Ultra-bots', color: ULTRA_COLORS.main, share: 0, player: null };
+      entries.push(team);
+    }
+    if (p.alive) team.share += pct(p);
+  }
+  return entries.sort((a, b) => b.share - a.share);
+}
+
 function updateHud() {
-  const ranked = players.filter(p => p.alive).sort((a, b) => pct(b) - pct(a));
+  const ranked = standings();
+  const mine = ranked.find(e => e.player === human);
   if (human && human.alive) {
     statArea.textContent = pct(human).toFixed(2) + '%';
     statKills.textContent = `${human.kills} kill${human.kills === 1 ? '' : 's'}`;
-    statRank.textContent = `Rank ${ranked.indexOf(human) + 1} of ${ranked.length}`;
+    statRank.textContent = `Rank ${ranked.indexOf(mine) + 1} of ${ranked.length}`;
   }
   const top = ranked.slice(0, 5);
-  if (human && human.alive && !top.includes(human)) top.push(human);
+  if (mine && !top.includes(mine)) top.push(mine);
   board.innerHTML = '';
-  for (const p of top) {
+  for (const e of top) {
     const li = document.createElement('li');
-    li.value = ranked.indexOf(p) + 1;
-    if (p === human) li.className = 'me';
+    li.value = ranked.indexOf(e) + 1;
+    if (e === mine) li.className = 'me';
     const swatch = document.createElement('i');
-    swatch.style.background = p.colors.main;
+    swatch.style.background = e.color;
     li.appendChild(swatch);
-    li.appendChild(document.createTextNode(p.name));
+    li.appendChild(document.createTextNode(e.name));
     const s = document.createElement('span');
-    s.textContent = pct(p).toFixed(1) + '%';
+    s.textContent = e.share.toFixed(1) + '%';
     li.appendChild(s);
     board.appendChild(li);
   }
@@ -1021,6 +1095,8 @@ function toast(msg) {
   el.className = 'toast';
   el.textContent = msg;
   feed.appendChild(el);
+  // Keep at most three messages on screen so they don't cover the action.
+  while (feed.children.length > 3) feed.firstChild.remove();
   setTimeout(() => el.remove(), 2300);
 }
 
@@ -1191,13 +1267,14 @@ function startGame() {
   const name = $('name').value.trim() || 'You';
   try { localStorage.setItem('pt-name', name); } catch (_) { /* ignore */ }
   removeHuman();
+  if (hardMode) endHardMode();
   if (!human) human = createPlayer(name, false);
   human.name = name;
   human.hue = skin.hue;
   human.pattern = skin.pattern;
   // Repaint any bot that looks too much like the player's chosen colour.
   for (const b of players) {
-    if (b.isBot && b.alive && hueGap(b.hue, human.hue) < 25) {
+    if (b.isBot && !b.ultra && b.alive && hueGap(b.hue, human.hue) < 25) {
       b.hue = pickBotHue(b);
       b.colors = makeColors(b.hue);
     }
