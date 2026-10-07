@@ -15,8 +15,8 @@ python3 -m http.server 8000
 
 ## Controls
 
-- Arrow keys / WASD to steer
-- Swipe on touch devices
+- **Phone/tablet:** put your thumb down anywhere and drag; your avatar heads the way you drag (floating joystick)
+- **Desktop:** your avatar heads toward the mouse cursor, or steer with arrow keys / WASD (hold two for diagonals)
 
 ## Rules
 

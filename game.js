@@ -3,18 +3,15 @@
 // ---------------------------------------------------------------------------
 // Config
 // ---------------------------------------------------------------------------
-const GRID = 100;            // world is GRID x GRID cells
-const SPEED = 7;             // cells per second
+const GRID = 200;            // world is GRID x GRID cells
+const SPEED = 12;            // cells per second
+const TURN_RATE = 7;         // max radians per second a head can turn
+const SUBSTEP = 0.4;         // max distance moved per collision step (cells)
 const BOT_COUNT = 10;
-const START_RADIUS = 2;      // starting territory is (2r+1)^2
+const START_RADIUS = 5;      // starting territory is a circle of this radius
 const BOT_RESPAWN_MS = 3000;
-
-const DIRS = [
-  { x: 0, y: -1 }, // 0 up
-  { x: 1, y: 0 },  // 1 right
-  { x: 0, y: 1 },  // 2 down
-  { x: -1, y: 0 }, // 3 left
-];
+const HEAD_SIZE = 2.2;       // avatar size in cells
+const JOY_RADIUS = 70;       // touch joystick radius in px
 
 const BOT_NAMES = [
   'Pixel', 'Zigzag', 'Blocky', 'Scribble', 'Inkwell', 'Origami', 'Crayon',
@@ -39,6 +36,14 @@ let state = 'menu';                        // 'menu' | 'playing' | 'dead'
 const idx = (x, y) => y * GRID + x;
 const inBounds = (x, y) => x >= 0 && y >= 0 && x < GRID && y < GRID;
 const rand = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+const TAU = Math.PI * 2;
+
+function angleDiff(a, b) {
+  let d = (a - b) % TAU;
+  if (d > Math.PI) d -= TAU;
+  if (d < -Math.PI) d += TAU;
+  return d;
+}
 
 function setOwner(i, id) {
   const old = owner[i];
@@ -60,7 +65,7 @@ function makeColors(hue) {
   return {
     main: `hsl(${hue},72%,56%)`,
     dark: `hsl(${hue},62%,38%)`,
-    trail: `hsla(${hue},72%,56%,0.5)`,
+    trail: `hsla(${hue},72%,56%,0.55)`,
     rgb: hslToRgb(hue, 72, 56),
   };
 }
@@ -72,10 +77,15 @@ function createPlayer(name, hue, isBot) {
   const p = {
     id: 0, name, isBot, alive: false,
     colors: makeColors(hue),
-    x: 0, y: 0, dir: 1, progress: 0, queue: [],
-    trail: [], box: null,
+    px: 0, py: 0,          // precise position (cells, float)
+    cx: 0, cy: 0,          // current cell
+    angle: 0, target: 0,   // heading and desired heading (radians)
+    trail: [],             // trail cell indices (for collision)
+    trailPts: [],          // trail polyline [x0,y0,x1,y1,...] (for drawing)
+    lastIn: { x: 0, y: 0 },// last position inside own land
+    box: null,
     kills: 0, bestArea: 0, spawnTime: 0, respawnAt: 0,
-    ai: { mode: 'idle', waypoints: [], maxTrail: 30 },
+    ai: null,
   };
   players.push(p);
   return p;
@@ -85,10 +95,10 @@ function spawnPlayer(p) {
   const r = START_RADIUS;
   let sx = 0, sy = 0, found = false;
   for (let attempt = 0; attempt < 300 && !found; attempt++) {
-    sx = rand(r + 3, GRID - r - 4);
-    sy = rand(r + 3, GRID - r - 4);
-    found = areaIsFree(sx, sy, r + 2) && !players.some(o =>
-      o.alive && Math.abs(o.x - sx) + Math.abs(o.y - sy) < 12);
+    sx = rand(r + 6, GRID - r - 7);
+    sy = rand(r + 6, GRID - r - 7);
+    found = areaIsFree(sx, sy, r + 3) && !players.some(o =>
+      o.alive && Math.abs(o.cx - sx) + Math.abs(o.cy - sy) < 25);
   }
   if (!found) {
     // Fall back to any spot that is at least not on someone's trail.
@@ -103,19 +113,22 @@ function spawnPlayer(p) {
   byId.set(p.id, p);
   areaCount.set(p.id, 0);
   p.alive = true;
-  p.x = sx; p.y = sy;
-  p.dir = rand(0, 3);
-  p.progress = 0;
-  p.queue = [];
+  p.cx = sx; p.cy = sy;
+  p.px = sx + 0.5; p.py = sy + 0.5;
+  p.angle = Math.atan2(GRID / 2 - sy, GRID / 2 - sx) + (Math.random() - 0.5);
+  p.target = p.angle;
   p.trail = [];
+  p.trailPts = [];
+  p.lastIn = { x: p.px, y: p.py };
   p.kills = 0;
   p.bestArea = 0;
   p.spawnTime = performance.now();
   p.box = { x0: sx - r, y0: sy - r, x1: sx + r, y1: sy + r };
-  p.ai = { mode: 'idle', waypoints: [], maxTrail: rand(14, 40) };
+  p.ai = { mode: 'idle', waypoints: [], maxTrail: 60, thinkIn: 0 };
 
   for (let y = sy - r; y <= sy + r; y++) {
     for (let x = sx - r; x <= sx + r; x++) {
+      if ((x - sx) ** 2 + (y - sy) ** 2 > r * r + r) continue;
       const i = idx(x, y);
       if (trail[i]) continue;
       setOwner(i, p.id);
@@ -147,6 +160,7 @@ function kill(p, killer, reason) {
   p.alive = false;
   for (const i of p.trail) if (trail[i] === p.id) trail[i] = 0;
   p.trail = [];
+  p.trailPts = [];
   for (let i = 0; i < owner.length; i++) if (owner[i] === p.id) owner[i] = 0;
   areaCount.delete(p.id);
   byId.delete(p.id);
@@ -158,6 +172,7 @@ function kill(p, killer, reason) {
 
   if (p === human) {
     state = 'dead';
+    joy.active = false;
     setTimeout(() => showGameOver(reason), 900);
   } else {
     p.respawnAt = performance.now() + BOT_RESPAWN_MS;
@@ -171,6 +186,7 @@ function capture(p) {
     setOwner(i, p.id);
   }
   p.trail = [];
+  p.trailPts = [];
 
   // Flood fill from the edge of the bounding box; anything not reachable
   // without crossing this player's land is enclosed and gets captured.
@@ -209,15 +225,12 @@ function capture(p) {
   }
 }
 
-// Move a player into the next cell and resolve what happens there.
-function advance(p) {
-  const nx = p.x + DIRS[p.dir].x;
-  const ny = p.y + DIRS[p.dir].y;
-  p.x = nx; p.y = ny;
+// The head has moved into cell (x, y): resolve what happens there.
+function enterCell(p, x, y) {
+  p.cx = x; p.cy = y;
+  if (!inBounds(x, y)) return kill(p, null, 'You hit the wall');
 
-  if (!inBounds(nx, ny)) return kill(p, null, 'You hit the wall');
-
-  const i = idx(nx, ny);
+  const i = idx(x, y);
   const t = trail[i];
   if (t === p.id) return kill(p, null, 'You crossed your own trail');
   if (t) {
@@ -230,14 +243,49 @@ function advance(p) {
   } else {
     trail[i] = p.id;
     p.trail.push(i);
-    growBox(p, nx, ny);
+    growBox(p, x, y);
   }
 }
 
-function applyTurn(p) {
-  while (p.queue.length) {
-    const d = p.queue.shift();
-    if (d !== p.dir && d !== (p.dir + 2) % 4) { p.dir = d; break; }
+function movePlayer(p, dt) {
+  const turn = angleDiff(p.target, p.angle);
+  const maxTurn = TURN_RATE * dt;
+  p.angle += Math.max(-maxTurn, Math.min(maxTurn, turn));
+
+  const cos = Math.cos(p.angle), sin = Math.sin(p.angle);
+  let dist = SPEED * dt;
+  while (dist > 0 && p.alive) {
+    const step = Math.min(SUBSTEP, dist);
+    dist -= step;
+    const ox = p.px, oy = p.py;
+    p.px += cos * step;
+    p.py += sin * step;
+    const nx = Math.floor(p.px), ny = Math.floor(p.py);
+
+    if (nx !== p.cx || ny !== p.cy) {
+      if (nx !== p.cx && ny !== p.cy) {
+        // Crossed a corner: visit the in-between cell first so trails stay
+        // 4-connected and nobody can slip through a diagonal gap.
+        const bx = nx > p.cx ? nx : p.cx;
+        const by = ny > p.cy ? ny : p.cy;
+        const tx = (bx - ox) / (p.px - ox);
+        const ty = (by - oy) / (p.py - oy);
+        if (tx < ty) enterCell(p, nx, p.cy);
+        else enterCell(p, p.cx, ny);
+        if (!p.alive) break;
+      }
+      enterCell(p, nx, ny);
+    }
+
+    if (p.trail.length) {
+      const pts = p.trailPts;
+      if (!pts.length) pts.push(p.lastIn.x, p.lastIn.y);
+      const lx = pts[pts.length - 2], ly = pts[pts.length - 1];
+      if ((p.px - lx) ** 2 + (p.py - ly) ** 2 > 0.36) pts.push(p.px, p.py);
+    } else {
+      p.lastIn.x = p.px;
+      p.lastIn.y = p.py;
+    }
   }
 }
 
@@ -247,9 +295,10 @@ function resolveHeadOns() {
     if (!A.alive) continue;
     for (let b = a + 1; b < players.length; b++) {
       const B = players[b];
-      if (!B.alive || A.x !== B.x || A.y !== B.y) continue;
-      const i = idx(A.x, A.y);
-      const aSafe = owner[i] === A.id, bSafe = owner[i] === B.id;
+      if (!B.alive || !A.alive) continue;
+      if ((A.px - B.px) ** 2 + (A.py - B.py) ** 2 > 1.4) continue;
+      const aSafe = owner[idx(A.cx, A.cy)] === A.id;
+      const bSafe = owner[idx(B.cx, B.cy)] === B.id;
       if (aSafe && !bSafe) kill(B, A, `You crashed into ${A.name}`);
       else if (bSafe && !aSafe) kill(A, B, `You crashed into ${B.name}`);
       else if (!aSafe && !bSafe) {
@@ -268,6 +317,7 @@ let spaceStamp = 1;
 
 // How many cells can be reached from (sx,sy) without hitting a wall or own trail.
 function freeSpace(p, sx, sy, limit) {
+  if (!inBounds(sx, sy) || trail[idx(sx, sy)] === p.id) return 0;
   spaceStamp++;
   const stack = [sx, sy];
   spaceSeen[idx(sx, sy)] = spaceStamp;
@@ -275,12 +325,12 @@ function freeSpace(p, sx, sy, limit) {
   while (stack.length && count < limit) {
     const y = stack.pop(), x = stack.pop();
     count++;
-    for (const d of DIRS) {
-      const nx = x + d.x, ny = y + d.y;
+    for (let k = 0; k < 4; k++) {
+      const nx = x + (k === 1) - (k === 3), ny = y + (k === 2) - (k === 0);
       if (!inBounds(nx, ny)) continue;
       const i = idx(nx, ny);
       if (spaceSeen[i] === spaceStamp || trail[i] === p.id) continue;
-      if (nx === p.x && ny === p.y) continue;
+      if (nx === p.cx && ny === p.cy) continue;
       spaceSeen[i] = spaceStamp;
       stack.push(nx, ny);
     }
@@ -288,16 +338,29 @@ function freeSpace(p, sx, sy, limit) {
   return count;
 }
 
+// Distance along angle `a` until a wall or own trail, or Infinity if clear.
+function rayBlocked(p, a, len) {
+  const c = Math.cos(a), s = Math.sin(a);
+  for (let d = 1; d <= len; d += 0.5) {
+    const x = Math.floor(p.px + c * d), y = Math.floor(p.py + s * d);
+    if (!inBounds(x, y)) return d;
+    if ((x !== p.cx || y !== p.cy) && trail[idx(x, y)] === p.id) return d;
+  }
+  return Infinity;
+}
+
 function nearestOwnCell(p) {
+  const x0 = p.cx, y0 = p.cy;
   for (let r = 1; r < GRID; r++) {
     let best = null, bestD = Infinity;
-    for (let y = p.y - r; y <= p.y + r; y++) {
-      for (let x = p.x - r; x <= p.x + r; x++) {
-        if (Math.abs(x - p.x) !== r && Math.abs(y - p.y) !== r) continue;
-        if (!inBounds(x, y) || owner[idx(x, y)] !== p.id) continue;
-        const d = Math.abs(x - p.x) + Math.abs(y - p.y);
-        if (d < bestD) { bestD = d; best = { x, y }; }
-      }
+    const check = (x, y) => {
+      if (!inBounds(x, y) || owner[idx(x, y)] !== p.id) return;
+      const d = Math.abs(x - x0) + Math.abs(y - y0);
+      if (d < bestD) { bestD = d; best = { x, y }; }
+    };
+    for (let k = -r; k <= r; k++) {
+      check(x0 + k, y0 - r); check(x0 + k, y0 + r);
+      check(x0 - r, y0 + k); check(x0 + r, y0 + k);
     }
     if (best) return best;
   }
@@ -306,12 +369,12 @@ function nearestOwnCell(p) {
 
 function nearestEnemyTrail(p, r) {
   let best = null, bestD = Infinity;
-  for (let y = p.y - r; y <= p.y + r; y++) {
-    for (let x = p.x - r; x <= p.x + r; x++) {
+  for (let y = p.cy - r; y <= p.cy + r; y++) {
+    for (let x = p.cx - r; x <= p.cx + r; x++) {
       if (!inBounds(x, y)) continue;
       const t = trail[idx(x, y)];
       if (!t || t === p.id) continue;
-      const d = Math.abs(x - p.x) + Math.abs(y - p.y);
+      const d = Math.abs(x - p.cx) + Math.abs(y - p.cy);
       if (d < bestD) { bestD = d; best = { x, y }; }
     }
   }
@@ -322,68 +385,67 @@ function enemyHeadDistance(p) {
   let best = Infinity;
   for (const o of players) {
     if (!o.alive || o === p) continue;
-    best = Math.min(best, Math.abs(o.x - p.x) + Math.abs(o.y - p.y));
+    best = Math.min(best, Math.hypot(o.px - p.px, o.py - p.py));
   }
   return best;
 }
 
 function planExcursion(p) {
   const area = areaCount.get(p.id) || 1;
-  const reach = Math.ceil(Math.sqrt(area) / 2) + rand(3, 9);
-  const d = rand(0, 3);
-  const side = (d + (Math.random() < 0.5 ? 1 : 3)) % 4;
-  const clamp = v => Math.max(1, Math.min(GRID - 2, v));
-  const a = { x: clamp(p.x + DIRS[d].x * reach), y: clamp(p.y + DIRS[d].y * reach) };
-  const len = rand(3, 10);
-  const b = { x: clamp(a.x + DIRS[side].x * len), y: clamp(a.y + DIRS[side].y * len) };
+  const reach = Math.sqrt(area) / 2 + rand(6, 18);
+  const a0 = Math.random() * TAU;
+  const side = a0 + (Math.random() < 0.5 ? 1 : -1) * (Math.PI / 2 + (Math.random() - 0.5) * 0.6);
+  const clamp = v => Math.max(2, Math.min(GRID - 3, Math.round(v)));
+  const a = { x: clamp(p.px + Math.cos(a0) * reach), y: clamp(p.py + Math.sin(a0) * reach) };
+  const len = rand(6, 18);
+  const b = { x: clamp(a.x + Math.cos(side) * len), y: clamp(a.y + Math.sin(side) * len) };
   p.ai.waypoints = [a, b];
-  p.ai.maxTrail = rand(14, 40);
+  p.ai.maxTrail = rand(30, 90);
   p.ai.mode = 'out';
 }
 
 function botThink(p) {
   const ai = p.ai;
-  const home = owner[idx(p.x, p.y)] === p.id;
+  const home = owner[idx(p.cx, p.cy)] === p.id;
 
   if (home) {
     if (ai.mode !== 'out' || !ai.waypoints.length) planExcursion(p);
-  } else if (p.trail.length > ai.maxTrail || enemyHeadDistance(p) < 6) {
+  } else if (p.trail.length > ai.maxTrail || enemyHeadDistance(p) < 10) {
     ai.mode = 'return';
   }
 
   let target;
   if (ai.mode === 'out') {
     const wp = ai.waypoints[0];
-    if (Math.abs(wp.x - p.x) + Math.abs(wp.y - p.y) <= 1) ai.waypoints.shift();
+    if (Math.hypot(wp.x + 0.5 - p.px, wp.y + 0.5 - p.py) < 2) ai.waypoints.shift();
     if (ai.waypoints.length) target = ai.waypoints[0];
     else ai.mode = 'return';
   }
   if (ai.mode === 'return') target = nearestOwnCell(p);
 
   // Opportunistic attack on nearby trails while it's safe.
-  if (home || p.trail.length < 8) {
-    const prey = nearestEnemyTrail(p, 5);
+  if (home || p.trail.length < 15) {
+    const prey = nearestEnemyTrail(p, 8);
     if (prey) target = prey;
   }
 
-  chooseDirection(p, target);
-}
-
-function chooseDirection(p, target) {
-  const options = [p.dir, (p.dir + 1) % 4, (p.dir + 3) % 4];
-  let bestDir = p.dir, bestScore = -Infinity;
-  for (const d of options) {
-    const nx = p.x + DIRS[d].x, ny = p.y + DIRS[d].y;
-    if (!inBounds(nx, ny)) continue;
-    if (trail[idx(nx, ny)] === p.id) continue;
-    let score = -(Math.abs(target.x - nx) + Math.abs(target.y - ny));
-    const space = freeSpace(p, nx, ny, 60);
-    if (space < 60) score -= (60 - space) * 3;
-    if (d === p.dir) score += 0.4;
-    score += Math.random() * 0.6;
-    if (score > bestScore) { bestScore = score; bestDir = d; }
+  const desired = Math.atan2(target.y + 0.5 - p.py, target.x + 0.5 - p.px);
+  let best = desired, bestScore = -Infinity;
+  for (const off of [0, 0.35, -0.35, 0.7, -0.7, 1.1, -1.1, 1.6, -1.6, 2.2, -2.2]) {
+    const a = desired + off;
+    let score = -Math.abs(off) * 2 - Math.abs(angleDiff(a, p.angle)) * 0.5;
+    const blocked = rayBlocked(p, a, 8);
+    if (blocked < Infinity) {
+      score -= (9 - blocked) * 8;
+    } else {
+      const ex = Math.floor(p.px + Math.cos(a) * 4), ey = Math.floor(p.py + Math.sin(a) * 4);
+      const space = freeSpace(p, ex, ey, 150);
+      if (space < 150) score -= (150 - space) * 0.3;
+    }
+    score += Math.random() * 0.3;
+    if (score > bestScore) { bestScore = score; best = a; }
   }
-  p.queue = [bestDir];
+  p.target = best;
 }
 
 // ---------------------------------------------------------------------------
@@ -391,19 +453,20 @@ function chooseDirection(p, target) {
 // ---------------------------------------------------------------------------
 function update(dt) {
   const now = performance.now();
+  if (human && human.alive) steerHuman();
   for (const p of players) {
     if (!p.alive) {
       if (p.isBot && now >= p.respawnAt) spawnPlayer(p);
       continue;
     }
-    p.progress += SPEED * dt;
-    while (p.progress >= 1 && p.alive) {
-      p.progress -= 1;
-      advance(p);
-      if (!p.alive) break;
-      if (p.isBot) botThink(p);
-      applyTurn(p);
+    if (p.isBot) {
+      p.ai.thinkIn -= dt;
+      if (p.ai.thinkIn <= 0) {
+        p.ai.thinkIn = 0.08 + Math.random() * 0.06;
+        botThink(p);
+      }
     }
+    movePlayer(p, dt);
   }
   resolveHeadOns();
 
@@ -423,7 +486,7 @@ const mctx = mini.getContext('2d');
 mini.width = GRID; mini.height = GRID;
 const miniImage = mctx.createImageData(GRID, GRID);
 
-let viewW = 0, viewH = 0, cell = 24;
+let viewW = 0, viewH = 0, cell = 12;
 const cam = { x: GRID / 2, y: GRID / 2 };
 
 function resize() {
@@ -433,110 +496,138 @@ function resize() {
   canvas.width = viewW * dpr;
   canvas.height = viewH * dpr;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  cell = Math.max(16, Math.min(32, Math.min(viewW, viewH) / 26));
+  cell = Math.max(7, Math.min(16, Math.min(viewW, viewH) / 42));
 }
 window.addEventListener('resize', resize);
 resize();
 
-function headPos(p) {
-  return {
-    x: p.x + DIRS[p.dir].x * (p.alive ? p.progress : 0),
-    y: p.y + DIRS[p.dir].y * (p.alive ? p.progress : 0),
-  };
+function cameraTarget() {
+  if (human && (human.alive || state === 'dead')) return human;
+  const bot = players.find(p => p.alive);
+  return bot || { px: GRID / 2, py: GRID / 2 };
 }
 
-function cameraTarget() {
-  if (human && (human.alive || state === 'dead')) return headPos(human);
-  const bot = players.find(p => p.alive);
-  return bot ? headPos(bot) : { x: GRID / 2, y: GRID / 2 };
-}
+const screenX = x => viewW / 2 + (x - cam.x) * cell;
+const screenY = y => viewH / 2 + (y - cam.y) * cell;
 
 function render(dt) {
   const t = cameraTarget();
   const k = Math.min(1, dt * 8);
-  cam.x += (t.x + 0.5 - cam.x) * k;
-  cam.y += (t.y + 0.5 - cam.y) * k;
-
-  const ox = viewW / 2 - cam.x * cell;
-  const oy = viewH / 2 - cam.y * cell;
-  const toX = x => ox + x * cell;
-  const toY = y => oy + y * cell;
+  cam.x += (t.px - cam.x) * k;
+  cam.y += (t.py - cam.y) * k;
 
   // Out-of-bounds background
   ctx.fillStyle = '#c7d1db';
   ctx.fillRect(0, 0, viewW, viewH);
 
-  const minX = Math.max(0, Math.floor(-ox / cell) - 1);
-  const minY = Math.max(0, Math.floor(-oy / cell) - 1);
-  const maxX = Math.min(GRID - 1, Math.ceil((viewW - ox) / cell) + 1);
-  const maxY = Math.min(GRID - 1, Math.ceil((viewH - oy) / cell) + 1);
+  const minX = Math.max(0, Math.floor(cam.x - viewW / 2 / cell) - 1);
+  const minY = Math.max(0, Math.floor(cam.y - viewH / 2 / cell) - 2);
+  const maxX = Math.min(GRID - 1, Math.ceil(cam.x + viewW / 2 / cell) + 1);
+  const maxY = Math.min(GRID - 1, Math.ceil(cam.y + viewH / 2 / cell) + 1);
 
-  // Playfield with subtle checkerboard
+  // Playfield with a subtle checkerboard of 5x5-cell tiles
   ctx.fillStyle = '#eef2f6';
-  ctx.fillRect(toX(0), toY(0), GRID * cell, GRID * cell);
+  ctx.fillRect(screenX(0), screenY(0), GRID * cell, GRID * cell);
   ctx.fillStyle = '#e4e9ef';
-  for (let y = minY; y <= maxY; y++) {
-    for (let x = minX + ((minX + y) & 1); x <= maxX; x += 2) {
-      ctx.fillRect(toX(x), toY(y), cell, cell);
+  const T = 5;
+  for (let ty = Math.floor(minY / T); ty <= Math.floor(maxY / T); ty++) {
+    for (let tx = Math.floor(minX / T); tx <= Math.floor(maxX / T); tx++) {
+      if ((tx + ty) & 1) ctx.fillRect(screenX(tx * T), screenY(ty * T), T * cell, T * cell);
     }
   }
 
   // Territory: dark "side" pass first, then the top face, to give depth.
-  const depth = Math.max(3, cell * 0.22);
+  // Adjacent same-owner cells in a row are merged into one rect.
+  const depth = Math.max(3, cell * 0.5);
   for (let pass = 0; pass < 2; pass++) {
     for (let y = minY; y <= maxY; y++) {
-      for (let x = minX; x <= maxX; x++) {
+      let x = minX;
+      while (x <= maxX) {
         const o = owner[idx(x, y)];
-        if (!o) continue;
+        if (!o) { x++; continue; }
+        let x2 = x + 1;
+        while (x2 <= maxX && owner[idx(x2, y)] === o) x2++;
         const p = byId.get(o);
-        if (!p) continue;
-        if (pass === 0) {
-          ctx.fillStyle = p.colors.dark;
-          ctx.fillRect(toX(x), toY(y) + depth, cell + 0.5, cell + 0.5);
-        } else {
-          ctx.fillStyle = p.colors.main;
-          ctx.fillRect(toX(x), toY(y), cell + 0.5, cell + 0.5);
+        if (p) {
+          ctx.fillStyle = pass === 0 ? p.colors.dark : p.colors.main;
+          ctx.fillRect(screenX(x), screenY(y) + (pass === 0 ? depth : 0),
+            (x2 - x) * cell + 0.5, cell + 0.5);
         }
+        x = x2;
       }
     }
   }
 
-  // Trails
-  for (let y = minY; y <= maxY; y++) {
-    for (let x = minX; x <= maxX; x++) {
-      const t2 = trail[idx(x, y)];
-      if (!t2) continue;
-      const p = byId.get(t2);
-      if (!p) continue;
-      ctx.fillStyle = p.colors.trail;
-      ctx.fillRect(toX(x) + 1, toY(y) + 1, cell - 2, cell - 2);
-    }
+  // Trails as smooth lines
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.lineWidth = cell;
+  for (const p of players) {
+    if (!p.alive || !p.trailPts.length) continue;
+    const pts = p.trailPts;
+    ctx.strokeStyle = p.colors.trail;
+    ctx.beginPath();
+    ctx.moveTo(screenX(pts[0]), screenY(pts[1]));
+    for (let i = 2; i < pts.length; i += 2) ctx.lineTo(screenX(pts[i]), screenY(pts[i + 1]));
+    ctx.lineTo(screenX(p.px), screenY(p.py));
+    ctx.stroke();
   }
 
   // Heads and names
   ctx.textAlign = 'center';
   ctx.textBaseline = 'bottom';
-  ctx.font = `700 ${Math.round(cell * 0.55)}px system-ui, sans-serif`;
+  ctx.font = `700 ${Math.round(Math.max(12, cell * 1.1))}px system-ui, sans-serif`;
+  const size = HEAD_SIZE * cell;
   for (const p of players) {
     if (!p.alive) continue;
-    const h = headPos(p);
-    const sx = toX(h.x), sy = toY(h.y);
-    if (sx < -cell * 4 || sy < -cell * 4 || sx > viewW + cell * 4 || sy > viewH + cell * 4) continue;
-    const pad = cell * 0.08;
+    const sx = screenX(p.px), sy = screenY(p.py);
+    if (sx < -100 || sy < -100 || sx > viewW + 100 || sy > viewH + 100) continue;
+    ctx.save();
+    ctx.translate(sx, sy);
+    ctx.rotate(p.angle);
     ctx.fillStyle = p.colors.dark;
-    ctx.fillRect(sx - pad, sy - pad + depth, cell + pad * 2, cell + pad * 2);
+    roundRect(-size / 2, -size / 2 + depth * 0.6, size, size, size * 0.25);
+    ctx.fill();
     ctx.fillStyle = p.colors.main;
-    ctx.fillRect(sx - pad, sy - pad, cell + pad * 2, cell + pad * 2);
+    roundRect(-size / 2, -size / 2, size, size, size * 0.25);
+    ctx.fill();
     ctx.strokeStyle = 'rgba(255,255,255,0.85)';
     ctx.lineWidth = 2;
-    ctx.strokeRect(sx + 2, sy + 2, cell - 4, cell - 4);
+    roundRect(-size / 2 + 3, -size / 2 + 3, size - 6, size - 6, size * 0.18);
+    ctx.stroke();
+    ctx.restore();
 
     ctx.lineWidth = 3;
     ctx.strokeStyle = 'rgba(0,0,0,0.45)';
-    ctx.strokeText(p.name, sx + cell / 2, sy - cell * 0.25);
+    ctx.strokeText(p.name, sx, sy - size * 0.75);
     ctx.fillStyle = '#fff';
-    ctx.fillText(p.name, sx + cell / 2, sy - cell * 0.25);
+    ctx.fillText(p.name, sx, sy - size * 0.75);
   }
+
+  // Touch joystick
+  if (joy.active && state === 'playing') {
+    ctx.fillStyle = 'rgba(255,255,255,0.18)';
+    ctx.strokeStyle = 'rgba(0,0,0,0.15)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(joy.ox, joy.oy, JOY_RADIUS, 0, TAU);
+    ctx.fill();
+    ctx.stroke();
+    let dx = joy.x - joy.ox, dy = joy.y - joy.oy;
+    const len = Math.hypot(dx, dy);
+    if (len > JOY_RADIUS) { dx *= JOY_RADIUS / len; dy *= JOY_RADIUS / len; }
+    ctx.fillStyle = 'rgba(255,255,255,0.55)';
+    ctx.beginPath();
+    ctx.arc(joy.ox + dx, joy.oy + dy, 26, 0, TAU);
+    ctx.fill();
+    ctx.stroke();
+  }
+}
+
+function roundRect(x, y, w, h, r) {
+  ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect(x, y, w, h, r);
+  else ctx.rect(x, y, w, h);
 }
 
 function renderMinimap() {
@@ -553,9 +644,9 @@ function renderMinimap() {
     }
   }
   if (human && human.alive) {
-    for (let dy = -1; dy <= 1; dy++) {
-      for (let dx = -1; dx <= 1; dx++) {
-        const x = human.x + dx, y = human.y + dy;
+    for (let dy = -2; dy <= 2; dy++) {
+      for (let dx = -2; dx <= 2; dx++) {
+        const x = human.cx + dx, y = human.cy + dy;
         if (!inBounds(x, y)) continue;
         const j = idx(x, y) * 4;
         d[j] = d[j + 1] = d[j + 2] = 20; d[j + 3] = 255;
@@ -618,37 +709,84 @@ function showGameOver(reason) {
 
 // ---------------------------------------------------------------------------
 // Input
+//   Touch: drag anywhere; the avatar heads the way your thumb points from
+//          where it first touched (a floating joystick).
+//   Mouse: the avatar heads toward the cursor.
+//   Keys:  arrows / WASD, diagonals by holding two keys.
 // ---------------------------------------------------------------------------
-function steer(d) {
-  if (!human || !human.alive) return;
-  const last = human.queue.length ? human.queue[human.queue.length - 1] : human.dir;
-  if (d === last || d === (last + 2) % 4) return;
-  if (human.queue.length < 3) human.queue.push(d);
+let controlMode = 'keys';
+const joy = { active: false, id: null, ox: 0, oy: 0, x: 0, y: 0 };
+const mouse = { x: 0, y: 0 };
+const held = new Set();
+
+function steerHuman() {
+  if (controlMode === 'mouse') {
+    const dx = mouse.x - screenX(human.px), dy = mouse.y - screenY(human.py);
+    if (Math.hypot(dx, dy) > cell) human.target = Math.atan2(dy, dx);
+  } else if (controlMode === 'touch' && joy.active) {
+    const dx = joy.x - joy.ox, dy = joy.y - joy.oy;
+    if (Math.hypot(dx, dy) > 8) human.target = Math.atan2(dy, dx);
+  }
 }
 
 const KEYS = {
-  ArrowUp: 0, KeyW: 0, ArrowRight: 1, KeyD: 1,
-  ArrowDown: 2, KeyS: 2, ArrowLeft: 3, KeyA: 3,
+  ArrowUp: 'u', KeyW: 'u', ArrowRight: 'r', KeyD: 'r',
+  ArrowDown: 'd', KeyS: 'd', ArrowLeft: 'l', KeyA: 'l',
 };
+function applyKeys() {
+  const dx = held.has('r') - held.has('l');
+  const dy = held.has('d') - held.has('u');
+  if ((dx || dy) && human && human.alive) {
+    controlMode = 'keys';
+    human.target = Math.atan2(dy, dx);
+  }
+}
 window.addEventListener('keydown', e => {
   if (state === 'menu' && e.code === 'Enter') return startGame();
-  if (state !== 'playing') return;
-  if (e.code in KEYS) { steer(KEYS[e.code]); e.preventDefault(); }
+  if (!(e.code in KEYS)) return;
+  held.add(KEYS[e.code]);
+  if (state === 'playing') { applyKeys(); e.preventDefault(); }
+});
+window.addEventListener('keyup', e => {
+  if (e.code in KEYS) held.delete(KEYS[e.code]);
 });
 
-let touchStart = null;
+window.addEventListener('pointermove', e => {
+  if (e.pointerType !== 'mouse') return;
+  mouse.x = e.clientX; mouse.y = e.clientY;
+  if (state === 'playing') controlMode = 'mouse';
+});
+
 window.addEventListener('touchstart', e => {
-  const t = e.touches[0];
-  touchStart = { x: t.clientX, y: t.clientY };
+  if (state !== 'playing' || joy.active) return;
+  const t = e.changedTouches[0];
+  joy.active = true;
+  joy.id = t.identifier;
+  joy.ox = joy.x = t.clientX;
+  joy.oy = joy.y = t.clientY;
+  controlMode = 'touch';
 }, { passive: true });
+
 window.addEventListener('touchmove', e => {
-  if (!touchStart || state !== 'playing') return;
-  const t = e.touches[0];
-  const dx = t.clientX - touchStart.x, dy = t.clientY - touchStart.y;
-  if (Math.hypot(dx, dy) < 24) return;
-  steer(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 1 : 3) : (dy > 0 ? 2 : 0));
-  touchStart = { x: t.clientX, y: t.clientY };
+  if (!joy.active) return;
+  for (const t of e.changedTouches) {
+    if (t.identifier !== joy.id) continue;
+    joy.x = t.clientX; joy.y = t.clientY;
+    // Drag the joystick base along so reversing direction stays quick.
+    const dx = joy.x - joy.ox, dy = joy.y - joy.oy;
+    const len = Math.hypot(dx, dy);
+    if (len > JOY_RADIUS) {
+      joy.ox = joy.x - dx / len * JOY_RADIUS;
+      joy.oy = joy.y - dy / len * JOY_RADIUS;
+    }
+  }
 }, { passive: true });
+
+function endTouch(e) {
+  for (const t of e.changedTouches) if (t.identifier === joy.id) joy.active = false;
+}
+window.addEventListener('touchend', endTouch, { passive: true });
+window.addEventListener('touchcancel', endTouch, { passive: true });
 
 // ---------------------------------------------------------------------------
 // Startup
@@ -659,7 +797,7 @@ function startGame() {
   if (!human) human = createPlayer(name, 210, false);
   human.name = name;
   spawnPlayer(human);
-  cam.x = human.x + 0.5; cam.y = human.y + 0.5;
+  cam.x = human.px; cam.y = human.py;
   state = 'playing';
   $('menu').classList.add('hidden');
   $('gameover').classList.add('hidden');
