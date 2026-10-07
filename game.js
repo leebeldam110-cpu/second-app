@@ -15,7 +15,10 @@ const BOT_RESPAWN = 3;       // seconds before a dead bot comes back
 const HEAD_SIZE = 2.2;       // avatar size in cells
 const HOME_REACH = 1.5;      // how close (cells) the avatar's centre must be to its land to count as touching it (~its corner)
 const JOY_RADIUS = 70;       // how far (px) the invisible touch joystick base trails your thumb
-const BORDER_KILL_ANGLE = 0.4; // hitting the border closer than this to head-on kills
+const BORDER_KILL_ANGLE = 0.2; // hitting the border within ~11° of straight-on kills
+const TRAIL_HIT = 0.5;       // a head this close (cells) to a drawn trail line touches it
+const SELF_SKIP = 4;         // newest trail points behind your own head that can't hurt you
+const HOME_CLEARANCE = 2.5;  // how far (cells) from where you left before your land's edge counts as home
 const WIN_PERCENT = 99.9;
 const HARD_PERCENT = 60;     // owning this much of the arena switches on hard mode
 const ULTRA_COUNT = 3;
@@ -40,6 +43,7 @@ const PATTERNS = ['solid', 'stripes', 'dots', 'checks', 'waves'];
 // ---------------------------------------------------------------------------
 const owner = new Int32Array(GRID * GRID); // player id owning each cell (0 = none)
 const trail = new Int32Array(GRID * GRID); // player id whose trail is on cell
+const trailSeg = new Int32Array(GRID * GRID); // index into that player's trailPts near this cell
 const inside = new Uint8Array(GRID * GRID); // 1 = cell is part of the arena
 const areaCount = new Map();               // id -> number of owned cells
 const byId = new Map();                    // id -> player
@@ -271,7 +275,7 @@ function capture(p) {
   const ours = i => owner[i] === p.id || mates.has(owner[i]);
 
   for (const i of p.trail) {
-    trail[i] = 0;
+    if (trail[i] === p.id) trail[i] = 0;
     if (!mates.has(owner[i])) setOwner(i, p.id);
   }
   p.trail = [];
@@ -396,31 +400,88 @@ function touchesOwnLand(p) {
   return false;
 }
 
-// The head has moved into cell (x, y): resolve what happens there.
+// The head has moved into cell (x, y). Cells record where trails run (for
+// capturing land and as a quick lookup); who dies is decided against the
+// drawn trail lines in checkTrailHits.
 function enterCell(p, x, y) {
   p.cx = x; p.cy = y;
   if (!inBounds(x, y)) return kill(p, null, 'You ran into the border');
 
   const i = idx(x, y);
-  const t = trail[i];
-  if (t === p.id) {
-    // The start of a trail hugs your land, so on a small loop the head can
-    // clip it while the avatar is visibly back home: count that as home.
-    if (touchesOwnLand(p)) return capture(p);
-    return kill(p, null, 'You crossed your own trail');
-  }
-  if (t) {
-    const victim = byId.get(t);
-    if (victim && !sameTeam(p, victim)) kill(victim, p, `${p.name} cut your trail`);
-  }
-
   if (owner[i] === p.id) {
     if (p.trail.length) capture(p);
-  } else {
-    trail[i] = p.id;
+  } else if (trail[i] !== p.id) {
+    // Two trails can share a cell without touching; the first one keeps the mark.
+    if (!trail[i]) {
+      trail[i] = p.id;
+      trailSeg[i] = p.trailPts.length >> 1;
+    }
     p.trail.push(i);
     growBox(p, x, y);
   }
+}
+
+// Distance from point (px,py) to segment (ax,ay)-(bx,by).
+function segDist(px, py, ax, ay, bx, by) {
+  const dx = bx - ax, dy = by - ay, len2 = dx * dx + dy * dy;
+  let t = len2 ? ((px - ax) * dx + (py - ay) * dy) / len2 : 0;
+  t = Math.max(0, Math.min(1, t));
+  return Math.hypot(px - ax - t * dx, py - ay - t * dy);
+}
+
+// Does p's head touch o's drawn trail between points lo..hi (padded)? For your
+// own trail, the newest stretch right behind the head is ignored.
+function touchesTrailLine(p, o, lo, hi) {
+  const pts = o.trailPts, last = (pts.length >> 1) - 1;
+  if (last < 0) return false;
+  const self = p === o;
+  // Segment j runs from point j to point j+1; segment `last` runs to the head.
+  const maxSeg = self ? last - SELF_SKIP - 1 : last;
+  const from = Math.max(0, lo - 2), to = Math.min(maxSeg, hi + 2);
+  for (let j = from; j <= to; j++) {
+    const ax = pts[2 * j], ay = pts[2 * j + 1];
+    const bx = j < last ? pts[2 * j + 2] : o.px, by = j < last ? pts[2 * j + 3] : o.py;
+    if (segDist(p.px, p.py, ax, ay, bx, by) < TRAIL_HIT) return true;
+  }
+  return false;
+}
+
+// Check p's head against every trail near it.
+const nearTrails = new Map();
+function checkTrailHits(p) {
+  nearTrails.clear();
+  for (let y = p.cy - 1; y <= p.cy + 1; y++) {
+    for (let x = p.cx - 1; x <= p.cx + 1; x++) {
+      if (x < 0 || y < 0 || x >= GRID || y >= GRID) continue;
+      const i = idx(x, y), t = trail[i];
+      if (!t) continue;
+      const r = nearTrails.get(t);
+      if (r) { r.lo = Math.min(r.lo, trailSeg[i]); r.hi = Math.max(r.hi, trailSeg[i]); }
+      else nearTrails.set(t, { lo: trailSeg[i], hi: trailSeg[i] });
+    }
+  }
+  for (const [t, r] of nearTrails) {
+    const o = byId.get(t);
+    if (!o || !o.alive || !touchesTrailLine(p, o, r.lo, r.hi)) continue;
+    if (o === p) {
+      // The start of a trail hugs your land, so on a small loop the head can
+      // touch it while the avatar is visibly back home: count that as home.
+      if (touchesOwnLand(p)) capture(p);
+      else kill(p, null, 'You crossed your own trail');
+      return;
+    }
+    if (!sameTeam(p, o)) kill(o, p, `${p.name} cut your trail`);
+  }
+}
+
+// Is any of the 8 cells around the head the player's own land?
+function nextToOwnLand(p) {
+  for (let y = p.cy - 1; y <= p.cy + 1; y++) {
+    for (let x = p.cx - 1; x <= p.cx + 1; x++) {
+      if (inBounds(x, y) && owner[idx(x, y)] === p.id) return true;
+    }
+  }
+  return false;
 }
 
 function movePlayer(p, dt) {
@@ -470,6 +531,17 @@ function movePlayer(p, dt) {
       }
       enterCell(p, cx, cy);
     }
+    if (!p.alive) break;
+
+    checkTrailHits(p);
+    if (!p.alive) break;
+
+    // Coming back alongside your land counts as home once the avatar is over
+    // its edge, as long as you're clear of the spot where you left.
+    if (p.trail.length >= 3 && nextToOwnLand(p) &&
+        Math.hypot(p.px - p.trailPts[0], p.py - p.trailPts[1]) > HOME_CLEARANCE) {
+      capture(p);
+    }
 
     if (p.trail.length) {
       const pts = p.trailPts;
@@ -491,8 +563,9 @@ function resolveHeadOns() {
       const B = players[b];
       if (!B.alive || !A.alive || sameTeam(A, B)) continue;
       if ((A.px - B.px) ** 2 + (A.py - B.py) ** 2 > 1.4) continue;
-      const aSafe = owner[idx(A.cx, A.cy)] === A.id;
-      const bSafe = owner[idx(B.cx, B.cy)] === B.id;
+      // Anyone without a trail out is home and safe.
+      const aSafe = !A.trail.length;
+      const bSafe = !B.trail.length;
       if (aSafe && !bSafe) kill(B, A, `You crashed into ${A.name}`);
       else if (bSafe && !aSafe) kill(A, B, `You crashed into ${B.name}`);
       else if (!aSafe && !bSafe) {
