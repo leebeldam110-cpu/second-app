@@ -11,9 +11,9 @@ const TURN_RATE = 7;         // max radians per second a head can turn
 const SUBSTEP = 0.4;         // max distance moved per collision step (cells)
 const BOT_COUNT = 10;
 const START_RADIUS = 5;      // starting territory is a circle of this radius
-const BOT_RESPAWN_MS = 3000;
+const BOT_RESPAWN = 3;       // seconds before a dead bot comes back
 const HEAD_SIZE = 2.2;       // avatar size in cells
-const JOY_RADIUS = 70;       // touch joystick radius in px
+const JOY_RADIUS = 70;       // how far (px) the invisible touch joystick base trails your thumb
 const BORDER_KILL_ANGLE = 0.4; // hitting the border closer than this to head-on kills
 const WIN_PERCENT = 99.9;
 
@@ -25,6 +25,7 @@ const BOT_NAMES = [
 
 const BOT_HUES = [0, 22, 42, 58, 90, 125, 150, 172, 250, 270, 290, 310, 330, 348];
 const SKIN_HUES = [210, 0, 30, 52, 135, 172, 280, 325];
+const SKIN_NAMES = ['Blue', 'Red', 'Orange', 'Yellow', 'Green', 'Teal', 'Purple', 'Pink'];
 const PATTERNS = ['solid', 'stripes', 'dots', 'checks', 'waves'];
 
 // ---------------------------------------------------------------------------
@@ -41,6 +42,7 @@ const particles = [];
 let nextId = 1;
 let human = null;
 let state = 'menu';                        // 'menu' | 'playing' | 'dead' | 'won'
+let clock = 0;                             // game time in seconds (pauses with the tab)
 
 const idx = (x, y) => y * GRID + x;
 const rand = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
@@ -173,7 +175,7 @@ function spawnPlayer(p) {
   p.lastIn = { x: p.px, y: p.py };
   p.kills = 0;
   p.bestArea = 0;
-  p.spawnTime = performance.now();
+  p.spawnTime = clock;
   p.box = { x0: sx - r, y0: sy - r, x1: sx + r, y1: sy + r };
   p.ai = { mode: 'idle', waypoints: [], maxTrail: 60, thinkIn: 0 };
 
@@ -186,6 +188,8 @@ function spawnPlayer(p) {
       setOwner(i, p.id);
     }
   }
+  // A fallback spawn may have landed on someone's (tiny) territory.
+  eliminateLandless(null);
   return true;
 }
 
@@ -211,6 +215,7 @@ function growBox(p, x, y) {
 function kill(p, killer, reason) {
   if (!p.alive) return;
   p.alive = false;
+  p.deathTime = clock;
   for (const i of p.trail) if (trail[i] === p.id) trail[i] = 0;
   p.trail = [];
   p.trailPts = [];
@@ -235,7 +240,7 @@ function kill(p, killer, reason) {
       setTimeout(() => showEnd(false, reason), 900);
     }
   } else {
-    p.respawnAt = performance.now() + BOT_RESPAWN_MS;
+    p.respawnAt = clock + BOT_RESPAWN;
   }
 }
 
@@ -278,10 +283,14 @@ function capture(p) {
     }
   }
 
-  // Anyone whose land was completely swallowed is eliminated.
+  eliminateLandless(p);
+}
+
+// Anyone whose land was completely swallowed is eliminated.
+function eliminateLandless(by) {
   for (const o of players) {
-    if (o.alive && o !== p && !areaCount.get(o.id)) {
-      kill(o, p, `${p.name} took all of your land`);
+    if (o.alive && o !== by && !areaCount.get(o.id)) {
+      kill(o, by, `${by ? by.name : 'Someone'} took all of your land`);
     }
   }
 }
@@ -537,11 +546,11 @@ function botThink(p) {
 // Game loop
 // ---------------------------------------------------------------------------
 function update(dt) {
-  const now = performance.now();
+  clock += dt;
   if (human && human.alive) steerHuman();
   for (const p of players) {
     if (!p.alive) {
-      if (p.isBot && now >= p.respawnAt && !spawnPlayer(p)) p.respawnAt = now + 1000;
+      if (p.isBot && clock >= p.respawnAt && !spawnPlayer(p)) p.respawnAt = clock + 1;
       continue;
     }
     if (p.isBot) {
@@ -756,9 +765,11 @@ function render(dt) {
 
   // Territory: dark "side" pass first, then the top face, to give depth.
   const depth = Math.max(3, cell * 0.5);
+  // Both passes are clipped to the arena so land never overhangs its edge.
   const paths = buildTerritoryPaths(minX, minY, maxX, maxY);
   ctx.save();
   ctx.translate(0, depth);
+  ctx.beginPath(); ctx.arc(ax, ay, ar, 0, TAU); ctx.clip();
   for (const [id, path] of paths) {
     const p = byId.get(id);
     if (!p) continue;
@@ -766,6 +777,8 @@ function render(dt) {
     ctx.fill(path);
   }
   ctx.restore();
+  ctx.save();
+  ctx.beginPath(); ctx.arc(ax, ay, ar, 0, TAU); ctx.clip();
   const patScale = (4 * cell) / TILE;
   const patMatrix = new DOMMatrix([patScale, 0, 0, patScale, screenX(0), screenY(0)]);
   for (const [id, path] of paths) {
@@ -780,6 +793,7 @@ function render(dt) {
       ctx.fill(path);
     }
   }
+  ctx.restore();
 
   // Trails as smooth lines
   ctx.lineCap = 'round';
@@ -848,25 +862,6 @@ function render(dt) {
     ctx.fillStyle = q.color;
     ctx.fillRect(-s / 2, -s / 2, s, s);
     ctx.restore();
-  }
-
-  // Touch joystick
-  if (joy.active && state === 'playing') {
-    ctx.fillStyle = 'rgba(255,255,255,0.18)';
-    ctx.strokeStyle = 'rgba(0,0,0,0.15)';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.arc(joy.ox, joy.oy, JOY_RADIUS, 0, TAU);
-    ctx.fill();
-    ctx.stroke();
-    let dx = joy.x - joy.ox, dy = joy.y - joy.oy;
-    const len = Math.hypot(dx, dy);
-    if (len > JOY_RADIUS) { dx *= JOY_RADIUS / len; dy *= JOY_RADIUS / len; }
-    ctx.fillStyle = 'rgba(255,255,255,0.55)';
-    ctx.beginPath();
-    ctx.arc(joy.ox + dx, joy.oy + dy, 26, 0, TAU);
-    ctx.fill();
-    ctx.stroke();
   }
 }
 
@@ -962,7 +957,8 @@ function showEnd(won, reason) {
   $('death-reason').textContent = won ? 'You own the whole map.' : (reason || '');
   $('res-area').textContent = human.bestArea.toFixed(2) + '%';
   $('res-kills').textContent = human.kills;
-  $('res-time').textContent = Math.round((performance.now() - human.spawnTime) / 1000) + 's';
+  const endTime = won ? clock : human.deathTime;
+  $('res-time').textContent = Math.round(endTime - human.spawnTime) + 's';
   $('new-best').hidden = !(human.bestArea > best && human.bestArea > 0);
   hud.classList.add('hidden');
   mini.classList.add('hidden');
@@ -987,7 +983,7 @@ function buildSkinPicker() {
     b.type = 'button';
     b.className = 'swatch' + (hue === skin.hue ? ' on' : '');
     b.style.background = `hsl(${hue},72%,56%)`;
-    b.setAttribute('aria-label', `Colour ${hue}`);
+    b.setAttribute('aria-label', SKIN_NAMES[SKIN_HUES.indexOf(hue)]);
     b.addEventListener('click', () => { skin.hue = hue; saveSkin(); buildSkinPicker(); });
     colors.appendChild(b);
   }
@@ -1052,7 +1048,8 @@ function applyKeys() {
   }
 }
 window.addEventListener('keydown', e => {
-  if (state === 'menu' && e.code === 'Enter') return startGame();
+  // A focused button already starts the game on Enter via its click event.
+  if (state === 'menu' && e.code === 'Enter' && e.target.tagName !== 'BUTTON') return startGame();
   if (!(e.code in KEYS)) return;
   held.add(KEYS[e.code]);
   if (state === 'playing') { applyKeys(); e.preventDefault(); }
@@ -1060,6 +1057,8 @@ window.addEventListener('keydown', e => {
 window.addEventListener('keyup', e => {
   if (e.code in KEYS) held.delete(KEYS[e.code]);
 });
+// Key-ups are lost while the window is unfocused, so forget held keys.
+window.addEventListener('blur', () => held.clear());
 
 window.addEventListener('pointermove', e => {
   if (e.pointerType !== 'mouse') return;
@@ -1102,13 +1101,23 @@ window.addEventListener('touchcancel', endTouch, { passive: true });
 // Startup
 // ---------------------------------------------------------------------------
 function startGame() {
+  if (state === 'playing') return;
+  // Close the on-screen keyboard if the name field still has focus.
+  if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
   const name = $('name').value.trim() || 'You';
   try { localStorage.setItem('pt-name', name); } catch (_) { /* ignore */ }
-  if (human && human.alive) kill(human, null);
+  removeHuman();
   if (!human) human = createPlayer(name, false);
   human.name = name;
   human.hue = skin.hue;
   human.pattern = skin.pattern;
+  // Repaint any bot that looks too much like the player's chosen colour.
+  for (const b of players) {
+    if (b.isBot && b.alive && hueGap(b.hue, human.hue) < 25) {
+      b.hue = pickBotHue(b);
+      b.colors = makeColors(b.hue);
+    }
+  }
   spawnPlayer(human);
   cam.x = human.px; cam.y = human.py;
   state = 'playing';
@@ -1119,8 +1128,18 @@ function startGame() {
   updateHud();
 }
 
+// Take the player off the map without a death screen (after a win, or a restart).
+function removeHuman() {
+  if (!human || !human.alive) return;
+  const prev = state;
+  state = 'menu';
+  kill(human, null);
+  state = prev;
+}
+
 function backToMenu() {
   state = 'menu';
+  removeHuman();
   $('gameover').classList.add('hidden');
   showBest();
   buildSkinPicker();
