@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>Paper Territory</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <canvas id="game"></canvas>
+
+  <div id="hud" class="hidden">
+    <div id="stats">
+      <span id="stat-area">0.00%</span>
+      <span id="stat-kills">0 kills</span>
+    </div>
+    <ol id="leaderboard"></ol>
+  </div>
+
+  <canvas id="minimap" class="hidden"></canvas>
+  <div id="feed"></div>
+
+  <div id="menu" class="overlay">
+    <div class="panel">
+      <h1>Paper Territory</h1>
+      <p class="sub">Leave your land, draw a loop, come home to claim it.<br>Don't let anyone touch your trail.</p>
+      <input id="name" maxlength="16" placeholder="Your name" autocomplete="off">
+      <button id="play">Play</button>
+      <p class="hint">Arrow keys / WASD to steer &middot; Swipe on mobile</p>
+    </div>
+  </div>
+
+  <div id="gameover" class="overlay hidden">
+    <div class="panel">
+      <h2>You died!</h2>
+      <p id="death-reason" class="sub"></p>
+      <div class="results">
+        <div><span id="res-area">0%</span><label>Best territory</label></div>
+        <div><span id="res-kills">0</span><label>Kills</label></div>
+        <div><span id="res-time">0s</span><label>Time alive</label></div>
+      </div>
+      <button id="again">Play again</button>
+    </div>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>
