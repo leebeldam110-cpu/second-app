@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The Eze'Rhi'El</title>
+<meta name="description" content="An idle game of embers, regenerations and a title nobody should want. Built on the DRPG's Eze'Rhi'El.">
+<!--build:fonts-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya:ital,wght@0,400;0,500;0,700;1,400&amp;family=Alegreya+Sans+SC:wght@500;700&amp;family=Grenze+Gotisch:wght@500;700&amp;display=swap">
+<!--/build:fonts-->
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<!--build:body-->
+<canvas id="fx" aria-hidden="true"></canvas>
+<div class="app">
+  <header class="top">
+    <div class="brand"><h1>The Eze&rsquo;Rhi&rsquo;El</h1><span class="rank" id="rank"></span></div>
+    <div class="purse" id="purse" aria-live="off"></div>
+  </header>
+  <main class="grid solo" id="grid">
+    <section class="col hearth" aria-label="The ember">
+      <div class="panel" style="display:grid;gap:10px">
+        <div class="eye-wrap">
+          <button type="button" id="eye" aria-label="Stoke the ember"><span id="eyeArt"></span></button>
+        </div>
+        <div class="stoke-label" id="stokeLbl">the ember is cold. stoke it.</div>
+        <div class="embers-big"><div class="amt" id="emAmt">0</div><div class="rate" id="emRate"></div></div>
+        <div class="buffs" id="buffs"></div>
+      </div>
+      <div class="panel"><div class="log" id="log" aria-live="polite"></div></div>
+    </section>
+    <section class="col board" id="board" hidden aria-label="The board">
+      <div class="panel">
+        <nav class="tabs" id="tabs" role="tablist" aria-label="Sections"></nav>
+        <div id="view"></div>
+      </div>
+    </section>
+    <aside class="col ascend-col" id="ascend" hidden aria-label="Ascension"></aside>
+  </main>
+</div>
+<button type="button" id="whisper" hidden aria-label="An eye opens in the dark. Answer the whisper."></button>
+<div id="toasts" aria-live="polite"></div>
+<div id="modal" hidden role="dialog" aria-modal="true"><div class="box" id="modalBox"></div></div>
+<!--/build:body-->
+<script src="js/util.js"></script>
+<script src="js/data.js"></script>
+<script src="js/engine.js"></script>
+<script src="js/icons.js"></script>
+<script src="js/fx.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

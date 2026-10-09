@@ -1,0 +1,11 @@
+{
+  "name": "ezerhiel",
+  "version": "1.0.0",
+  "private": true,
+  "description": "The Eze'Rhi'El: an idle game built on the DRPG's Eze'Rhi'El.",
+  "scripts": {
+    "test": "node tools/test.js",
+    "sim": "node tools/sim.js",
+    "build": "node tools/build.js"
+  }
+}
