@@ -172,6 +172,15 @@ button {
 button:active { transform: translateY(2px); border-bottom-width: 2px; }
 button:focus-visible { outline: 3px solid #3fa7e0; outline-offset: 2px; }
 
+button.hard {
+  margin-top: 10px;
+  padding: 10px;
+  font-size: 16px;
+  background: #353a47;
+  border-bottom-color: #181b22;
+  box-shadow: inset 0 0 0 2px #ff5a5a;
+}
+
 button.secondary {
   margin-top: 10px;
   padding: 10px;

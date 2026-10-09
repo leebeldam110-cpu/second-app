@@ -1282,7 +1282,7 @@ function applyKeys() {
 }
 window.addEventListener('keydown', e => {
   // A focused button already starts the game on Enter via its click event.
-  if (state === 'menu' && e.code === 'Enter' && e.target.tagName !== 'BUTTON') return startGame();
+  if (state === 'menu' && e.code === 'Enter' && e.target.tagName !== 'BUTTON') return startGame(false);
   if (!(e.code in KEYS)) return;
   held.add(KEYS[e.code]);
   if (state === 'playing') { applyKeys(); e.preventDefault(); }
@@ -1333,8 +1333,11 @@ window.addEventListener('touchcancel', endTouch, { passive: true });
 // ---------------------------------------------------------------------------
 // Startup
 // ---------------------------------------------------------------------------
-function startGame() {
+// hard: start with hard mode already on (the "Play hard mode" button).
+let lastHard = false;
+function startGame(hard = false) {
   if (state === 'playing') return;
+  lastHard = hard;
   // Close the on-screen keyboard if the name field still has focus.
   if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
   const name = $('name').value.trim() || 'You';
@@ -1355,6 +1358,7 @@ function startGame() {
   spawnPlayer(human);
   cam.x = human.px; cam.y = human.py;
   state = 'playing';
+  if (hard) startHardMode();
   $('menu').classList.add('hidden');
   $('gameover').classList.add('hidden');
   hud.classList.remove('hidden');
@@ -1380,8 +1384,10 @@ function backToMenu() {
   $('menu').classList.remove('hidden');
 }
 
-$('play').addEventListener('click', startGame);
-$('again').addEventListener('click', startGame);
+$('play').addEventListener('click', () => startGame(false));
+$('play-hard').addEventListener('click', () => startGame(true));
+// Play again repeats whichever mode was played last.
+$('again').addEventListener('click', () => startGame(lastHard));
 $('to-menu').addEventListener('click', backToMenu);
 try { $('name').value = localStorage.getItem('pt-name') || ''; } catch (_) { /* ignore */ }
 buildSkinPicker();

@@ -35,7 +35,8 @@ When you own 60% of the arena, hard mode switches on for the rest of that game:
 - Ordinary bots that die stay dead.
 - Three **ultra-bots** join. They share one look (dark with stripes and a red outline) and play as a team: their land is scored together as one "Ultra-bots" entry, they can cross each other's trails, never crash into or hunt each other, and never take each other's land (a teammate's land counts as a wall when they enclose an area).
 - Ultra-bots spawn in different places, move 15% faster than everyone else, and keep respawning.
-- The goal is unchanged: own 100% of the arena. Starting a new game goes back to normal mode.
+- The goal is unchanged: own 100% of the arena.
+- To skip straight to it, tap **Play hard mode** on the start screen. **Play again** repeats whichever mode you last played; **Play** always starts a normal game.
 
 ## Skins
 
